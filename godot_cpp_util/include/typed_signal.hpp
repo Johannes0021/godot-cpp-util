@@ -456,8 +456,6 @@ public:
      * signal
      *     .unbind<2>() // remove last 2 arguments
      *     .connect(node, StaticBinding{my_callback, bound_arg0, bound_arg1, ...});
-     *
-     * // bound_arg0/bound_arg1 are the extra values
      */
     template <typename F, typename ...BoundArgs>
     requires std::invocable<F, Args..., BoundArgs...>
