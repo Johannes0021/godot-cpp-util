@@ -1,0 +1,657 @@
+/**
+ * Requires C++20 standard.
+ *
+ * TypedSignal is a type-safe signal abstraction for Godot C++ that enforces correct callable
+ * signatures and argument binding at compile time instead of runtime. Supports both binding
+ * and unbinding of signal arguments with compile-time safety.
+ *
+ * Usage Example:
+ *
+ * #pragma once
+ *
+ * #include <godot_cpp/classes/object.hpp>
+ * #include <godot_cpp/core/class_db.hpp>
+ *
+ * #include "godot_cpp_util/include/typed_signal.hpp"
+ *
+ * using namespace godot;
+ *
+ * // =========================
+ * // Subject class
+ * // =========================
+ * class CppSubject : public Object {
+ *     GDCLASS(CppSubject, Object)
+ *
+ * public:
+ *     struct Signal {
+ *         static constexpr TypedSignal my_signal{"my_signal"};
+ *         static constexpr TypedSignal<StringName> animation_finished{"animation_finished"};
+ *         static constexpr TypedSignal<int, float, String, int> many_args{"many_args"};
+ *     };
+ *
+ * public:
+ *     void emit_all_signals() {
+ *         Signal::my_signal.emit(*this);
+ *         Signal::animation_finished.emit(*this, "run");
+ *         Signal::many_args.emit(*this, 21, 3.14f, "Hello, world!", 0);
+ *     }
+ *
+ * protected:
+ *     static void _bind_methods() {
+ *         ADD_SIGNAL(MethodInfo(Signal::my_signal.get_name()));
+ *         ADD_SIGNAL(MethodInfo(Signal::animation_finished.get_name()));
+ *         ADD_SIGNAL(MethodInfo(Signal::many_args.get_name()));
+ *     }
+ *
+ * };
+ *
+ * // =========================
+ * // Free function example
+ * // =========================
+ * inline void print_args(int arg0, float arg1, String arg2, String bound_arg0) {
+ *     print_line("Arg 0: ", arg0);
+ *     print_line("Arg 1: ", arg1);
+ *     print_line("Arg 2: ", arg2);
+ *     print_line("Bound arg 0: ", bound_arg0);
+ * }
+ *
+ * // =========================
+ * // Observer class
+ * // =========================
+ * class CppObserver : public Object {
+ *     GDCLASS(CppObserver, Object)
+ *
+ * public:
+ *     CppObserver() = default;
+ *
+ *     CppObserver(CppSubject &subject) {
+ *         // Connect a static function binding with extra bound arguments.
+ *         CppSubject::Signal::my_signal
+ *             .connect(
+ *                 subject,
+ *                 StaticBinding{
+ *                     CppObserver::on_subject_my_callback,
+ *                     "bind extra arg 0",
+ *                     "bind extra arg 1"
+ *                 }
+ *             );
+ *
+ *         // Connect a member function binding.
+ *         CppSubject::Signal::animation_finished
+ *             .connect(
+ *                 subject,
+ *                 MemberBinding{*this, &CppObserver::on_animation_player_animation_finished}
+ *             );
+ *
+ *         // Connect a static function that ignores the last argument of the signal and appends an
+ *         // extra bound argument.
+ *         CppSubject::Signal::many_args
+ *             .unbind<1>()
+ *             .connect(subject, StaticBinding{print_args, "bind extra arg 0"});
+ *     }
+ *
+ * protected:
+ *     static void _bind_methods() {}
+ *
+ * private:
+ *     // Static callback for the static binding example.
+ *     static void on_subject_my_callback(String bound_arg0, String bound_arg1) {
+ *         print_line("Bound arg 0: ", bound_arg0);
+ *         print_line("Bound arg 1: ", bound_arg1);
+ *     }
+ *
+ *     // Member function callback example.
+ *     void on_animation_player_animation_finished(StringName anim_name) {
+ *         print_line("Animation finished: ", anim_name);
+ *     }
+ *
+ * };
+ *
+ * // =========================
+ * // Example usage function
+ * // =========================
+ * inline void run_example() {
+ *     CppSubject *subject = memnew(CppSubject{});
+ *     CppObserver *observer = memnew(CppObserver{*subject});
+ *
+ *     subject->emit_all_signals();
+ *
+ *     // --- Output start ---
+ *     // Bound arg 0: bind extra arg 0
+ *     // Bound arg 1: bind extra arg 1
+ *     // Animation finished: run
+ *     // Arg 0: 21
+ *     // Arg 1: 3.14000010490417
+ *     // Arg 2: Hello, world!
+ *     // Bound arg 0: bind extra arg 0
+ *     // --- Output end ---
+ *
+ *     memdelete(observer);
+ *     memdelete(subject);
+ * }
+ *
+ * Notes:
+ * - Bound arguments supplied during connection are always appended after the signal's arguments.
+ * - Unbinding allows connecting functions that require fewer arguments than the full signal.
+ * - Supports both free functions and member functions.
+ * - Works entirely at compile-time for argument count and type checking.
+ */
+
+
+
+#pragma once
+
+
+
+#include <concepts>
+#include <tuple>
+
+#include <godot_cpp/classes/object.hpp>
+
+
+
+using namespace godot;
+
+
+
+//==================================================================================================
+// StaticBinding class
+//==================================================================================================
+
+/**
+ * Wraps a Callable form a free/static function and optionally binds arguments.
+ * F must be a plain function pointer (not a lambda or member function).
+ */
+template <typename F, typename ...BoundArgs>
+requires std::is_pointer_v<std::decay_t<F>>
+         && std::is_function_v<std::remove_pointer_t<std::decay_t<F>>>
+class StaticBinding {
+
+private:
+    template <typename ...Args>
+    friend class TypedSignal;
+
+
+
+private:
+    Callable m_callable{};
+
+
+
+public:
+    /**
+     * Construct a binding from a function pointer and optional bound arguments.
+     * Uses Godot's callable_mp_static to wrap the function pointer into a Callable.
+     */
+    explicit StaticBinding(F p_func, const BoundArgs &...p_bound_args)
+        : m_callable(callable_mp_static(p_func))
+    {
+        if constexpr (sizeof...(BoundArgs) > 0) {
+            m_callable = m_callable.bind(p_bound_args...);
+        }
+    }
+
+};
+
+
+
+//==================================================================================================
+// MemberBinding class
+//==================================================================================================
+
+/**
+ * Wraps a Callable form a member function of a Godot Object-derived class and optionally binds
+ * arguments.
+ * T must derive from Object.
+ * F must be a member function pointer of T.
+ */
+template <typename T, typename F, typename ...BoundArgs>
+requires std::derived_from<T, Object>
+         && std::is_member_function_pointer_v<F>
+class MemberBinding {
+
+private:
+    template <typename ...Args>
+    friend class TypedSignal;
+
+
+
+private:
+    Callable m_callable{};
+
+
+
+public:
+    /**
+     * Construct a binding from an instance and a member function pointer, optionally binding args.
+     * Uses Godot's callable_mp helper to wrap the member function into a Callable.
+     */
+    explicit MemberBinding(T &p_instance, F p_func, const BoundArgs &...p_bound_args)
+        : m_callable(callable_mp(&p_instance, p_func))
+    {
+        if constexpr (sizeof...(BoundArgs) > 0) {
+            m_callable = m_callable.bind(p_bound_args...);
+        }
+    }
+
+};
+
+
+
+//==================================================================================================
+// Helpers
+//==================================================================================================
+
+// typed_signal_helper_drop_last -------------------------------------------------------------------
+
+// Remove the last N types from a type pack or tuple.
+template <size_t N, typename ...Ts>
+struct typed_signal_helper_drop_last;
+
+
+
+// Base case: N == 0, keep everything.
+template <typename ...Ts>
+struct typed_signal_helper_drop_last<0, Ts...> {
+    using type = std::tuple<Ts...>;
+};
+
+
+
+// Base case: N >= sizeof...(Ts), remove everything.
+template <size_t N>
+struct typed_signal_helper_drop_last<N> {
+    using type = std::tuple<>;
+};
+
+
+
+// Recursive case: remove last N elements.
+template <size_t N, typename T, typename ...Ts>
+requires (N > 0)
+struct typed_signal_helper_drop_last<N, T, Ts...> {
+
+private:
+    static constexpr size_t tail_size = sizeof...(Ts);
+
+
+
+public:
+    using type = std::conditional_t<
+        (N >= tail_size + 1),
+        std::tuple<>, // remove all if N >= size
+        decltype(std::tuple_cat(
+            std::tuple<T>{},
+            typename typed_signal_helper_drop_last<N, Ts...>::type{}
+        ))
+    >;
+
+};
+
+
+
+// typed_signal_helper_tuple_to_signal -------------------------------------------------------------
+
+// Converts a tuple of types into a TypedSignal with those types.
+template <typename Tuple>
+struct typed_signal_helper_tuple_to_signal;
+
+// Forward declaration.
+template<typename ...Args>
+class TypedSignal;
+
+template <typename ...Ts>
+struct typed_signal_helper_tuple_to_signal<std::tuple<Ts...>> {
+    using type = TypedSignal<Ts...>;
+};
+
+
+
+//==================================================================================================
+// TypedSignal class
+//==================================================================================================
+
+/**
+ * TypedSignal is a type-safe signal abstraction for Godot C++ that enforces correct callable
+ * signatures and argument binding at compile time instead of runtime. Supports both binding
+ * and unbinding of signal arguments with compile-time safety.
+ */
+template<typename ...Args>
+class TypedSignal {
+
+private:
+    template <typename...>
+    friend class TypedSignal;
+
+
+
+private:
+    const char *m_signal_name = "";
+    const size_t m_unbind_arg_count = 0;
+
+
+
+public:
+    // Returns the number of arguments the signal expects.
+    static constexpr size_t get_arg_count() {
+        return sizeof...(Args);
+    }
+
+
+
+    // Construct TypedSignal with a name.
+    constexpr TypedSignal(const char *p_signal_name)
+        : m_signal_name(p_signal_name)
+    {}
+
+
+
+    // Returns the signal name.
+    const char* get_name() const {
+        return m_signal_name;
+    }
+
+
+
+    /**
+     * Returns the number of arguments that have been unbound from the original signal.
+     *
+     * This tells you how many arguments of the original signal type (before any unbinding) have
+     * been removed in this TypedSignal instance.
+     *
+     * Note: `get_arg_count() + get_unbind_arg_count()` equals the total number of arguments
+     * of the original signal.
+     *
+     * For the full original argument count, see `get_original_arg_count()`.
+     *
+     * Example (pseudo-code):
+     * auto sig = TypedSignal<int, float, String, int>{"my_signal"};
+     * auto reduced_sig = sig.unbind<2>(); // removes last 2 arguments
+     * auto reduced_reduced_sig = sig.unbind<1>(); // removes last argument
+     *
+     * sig.get_unbind_arg_count(); // returns 4
+     * reduced_sig.get_unbind_arg_count(); // returns 2
+     * reduced_reduced_sig.get_unbind_arg_count(); // returns 1
+     */
+    size_t get_unbind_arg_count() const {
+        return m_unbind_arg_count;
+    }
+
+
+
+    /**
+     * Returns the total number of arguments of the original signal before any unbinding.
+     *
+     * This value is equivalent to the sum of `get_arg_count()` (remaining arguments) and
+     * `get_unbind_arg_count()` (arguments that were removed via `unbind<N>()`).
+     *
+     * Example (pseudo-code):
+     * auto sig = TypedSignal<int, float, String, int>{"my_signal"};
+     * auto reduced_sig = sig.unbind<2>(); // removes last 2 arguments
+     * auto reduced_reduced_sig = sig.unbind<1>(); // removes last argument
+     *
+     * sig.get_unbind_arg_count(); // returns 4
+     * reduced_sig.get_unbind_arg_count(); // returns 2
+     * reduced_reduced_sig.get_unbind_arg_count(); // returns 1
+     *
+     * sig.get_original_arg_count(); // returns 4
+     * reduced_sig.get_original_arg_count(); // returns 4
+     * reduced_reduced_sig.get_original_arg_count(); // returns 4
+     */
+    constexpr size_t get_original_arg_count() const {
+        return get_arg_count() + m_unbind_arg_count;
+    }
+
+
+
+    /**
+     * Remove the last N argument types from this signal and return a new TypedSignal with fewer
+     * argument types.
+     *
+     * The returned signal keeps track of how many arguments should be unbound.
+     * See `get_unbind_arg_count()` for details.
+     */
+    template <size_t N>
+    requires (N <= get_arg_count())
+    constexpr auto unbind() const {
+        using tuple = typename typed_signal_helper_drop_last<N, Args...>::type;
+        using NewTypedSignal = typename typed_signal_helper_tuple_to_signal<tuple>::type;
+
+        return NewTypedSignal{m_signal_name, m_unbind_arg_count + N};
+    }
+
+
+
+    /**
+     * Connects a static function to this signal with optional bound arguments.
+     *
+     * This overload accepts a StaticBinding, which wraps a free/static function pointer and
+     * optionally pre-bound arguments. The connection will respect any arguments that were
+     * previously unbound via `TypedSignal::unbind<N>()`.
+     *
+     * Requirements:
+     * - The callable F must be invocable with the signal's argument types followed by any bound
+     *   arguments.
+     * - The callable must return void.
+     *
+     * @tparam F The function type (static/free function pointer).
+     * @tparam BoundArgs Optional bound argument types.
+     * @param p_owner The Godot Object that owns the signal.
+     * @param p_static_binding The static function binding to connect.
+     * @param p_flags Optional connection flags (default 0).
+     * @return Error code from Godot's `Object::connect()`.
+     *
+     * Example (pseudo-code):
+     * // Original signal has four arguments: int, float, String, int
+     * TypedSignal<int, float, String, int> signal{"my_signal"};
+     *
+     * // Static callback expects all arguments from the signal
+     * void my_callback_no_extra(int x, float y, String z, int w) { ... }
+     *
+     * // Static callback expects the first two arguments from the signal, plus two bound arguments.
+     * void my_callback(int x, float y, BoundArg0 ba0, BoundArg1 ba1) { ... }
+     *
+     * signal.connect(node, StaticBinding{my_callback_no_extra});
+     *
+     * signal
+     *     .unbind<2>() // remove last 2 arguments
+     *     .connect(node, StaticBinding{my_callback, bound_arg0, bound_arg1, ...});
+     *
+     * // bound_arg0/bound_arg1 are the extra values
+     */
+    template <typename F, typename ...BoundArgs>
+    requires std::invocable<F, Args..., BoundArgs...>
+             && std::same_as<std::invoke_result_t<F, Args..., BoundArgs...>, void>
+    Error connect(
+        Object &p_owner,
+        StaticBinding<F, BoundArgs...> p_static_binding,
+        uint32_t p_flags = 0
+    ) const {
+        if (m_unbind_arg_count != 0) {
+            return p_owner.connect(
+                m_signal_name,
+                p_static_binding.m_callable
+                    .unbind(static_cast<int64_t>(m_unbind_arg_count)),
+                p_flags
+            );
+        }
+        else {
+            return p_owner.connect(m_signal_name, p_static_binding.m_callable, p_flags);
+        }
+    }
+
+
+
+    /**
+     * Connects a member function to this signal with optional bound arguments.
+     *
+     * This overload accepts a MemberBinding, which wraps a member function pointer and optionally
+     * pre-bound arguments. The connection will respect any arguments that were previously unbound
+     * via `TypedSignal::unbind<N>()`.
+     *
+     * Requirements:
+     * - The callable F must be invocable with the object instance, the signal's arguments, and any
+     *   bound arguments.
+     * - The callable must return void.
+     *
+     * @tparam T Class type of the object instance.
+     * @tparam F Member function type.
+     * @tparam BoundArgs Optional bound argument types.
+     * @param p_owner The Godot Object that owns the signal.
+     * @param p_member_binding The member function binding to connect.
+     * @param p_flags Optional connection flags (default 0).
+     * @return Error code from Godot's `Object::connect()`.
+     *
+     * Example (pseudo-code):
+     * // Original signal has four arguments: int, float, String, int
+     * TypedSignal<int, float, String, int> signal{"my_signal"};
+     *
+     * // Member callback expects all arguments from the signal
+     * void MyGDObject::my_callback_no_extra(int x, float y, String z, int w) { ... }
+     *
+     * // Member callback expects the first two arguments from the signal, plus two bound arguments.
+     * void MyGDObject::my_callback(int x, float y, BoundArg0 ba0, BoundArg1 ba1) { ... }
+     *
+     * signal.connect(node, MemberBinding{*my_gd_obj, &MyGDObject::my_callback_no_extra});
+     *
+     * signal
+     *     .unbind<2>() // remove last 2 arguments
+     *     .connect(
+     *         node,
+     *         MemberBinding{*my_gd_obj, &MyGDObject::my_callback, bound_arg0, bound_arg1, ...}
+     *      );
+     */
+    template <typename T, typename F, typename ...BoundArgs>
+    requires std::invocable<F, T&, Args..., BoundArgs...>
+             && std::same_as<std::invoke_result_t<F, T&, Args..., BoundArgs...>, void>
+    Error connect(
+        Object &p_owner,
+        MemberBinding<T, F, BoundArgs...> p_member_binding,
+        uint32_t p_flags = 0
+    ) const {
+        if (m_unbind_arg_count != 0) {
+            return p_owner.connect(
+                m_signal_name,
+                p_member_binding.m_callable
+                    .unbind(static_cast<int64_t>(m_unbind_arg_count)),
+                p_flags
+            );
+        }
+        else {
+            return p_owner.connect(m_signal_name, p_member_binding.m_callable, p_flags);
+        }
+    }
+
+
+
+    /**
+     * Disconnects a previously connected Callable from this signal.
+     *
+     * Only the callable itself is considered for disconnection. Bound arguments or unbound signal
+     * args do not matter; the same function can be disconnected even if different bound values
+     * were used.
+     *
+     * @param p_owner The Godot Object that owns the signal.
+     * @param p_callable The callable to disconnect.
+     *
+     * Example (pseudo-code):
+     * signal.connect(
+     *     node,
+     *     MemberBinding{observer_node, &ObserverNode::my_callback, bound_arg0, bound_arg1, ...}
+     * );
+     *
+     * Callable c = callable_mp(observer_node, &ObserverNode::my_callback);
+     * signal.disconnect(node, c); // disconnects regardless of any bound/unbound args.
+     */
+    void disconnect(Object &p_owner, const Callable &p_callable) const {
+        return p_owner.disconnect(m_signal_name, p_callable);
+    }
+
+
+
+    /**
+     * Disconnects a previously connected static function binding from this signal.
+     *
+     * Only the function itself is considered for disconnection. Bound arguments or unbound signal
+     * args do not matter; the same function can be disconnected even if different bound values
+     * were used.
+     *
+     * @tparam F Function type.
+     * @param p_owner The Godot Object that owns the signal.
+     * @param p_static_binding The static binding to disconnect.
+     *
+     * Example (pseudo-code):
+     * signal.connect(
+     *     node,
+     *     StaticBinding{my_callback, bound_arg0, bound_arg1, ...}
+     * );
+     *
+     * signal.disconnect(
+     *     node,
+     *     StaticBinding{my_callback} // disconnects regardless of any bound/unbound args.
+     * );
+     */
+    template <typename F>
+    void disconnect(Object &p_owner, const StaticBinding<F> &p_static_binding) const {
+        return p_owner.disconnect(m_signal_name, p_static_binding.m_callable);
+    }
+
+
+
+    /**
+     * Disconnects a previously connected member function binding from this signal.
+     *
+     * Only the object instance and member function pointer identify the connection.
+     * Bound arguments or unbound signal args do not matter; the same function can be disconnected
+     * even if different bound values were used.
+     *
+     * @tparam T Class type of the object instance.
+     * @tparam F Member function type.
+     * @param p_owner The Godot Object that owns the signal.
+     * @param p_member_binding The member binding to disconnect.
+     *
+     * Example (pseudo-code):
+     * signal.connect(
+     *     node,
+     *     MemberBinding{observer_node, &ObserverNode::my_callback, bound_arg0, bound_arg1, ...}
+     * );
+     *
+     * signal.disconnect(
+     *     node,
+     *     MemberBinding{observer_node, &ObserverNode::my_callback} // disconnects regardless of
+     *                                                              // any bound/unbound args.
+     * );
+     */
+    template <typename T, typename F>
+    void disconnect(Object &p_owner, const MemberBinding<T, F> &p_member_binding) const {
+        return p_owner.disconnect(m_signal_name, p_member_binding.m_callable);
+    }
+
+
+
+    /**
+     * Emit the signal with the given arguments.
+     *
+     * This triggers the signal on the owning object with the specified arguments.
+     *
+     * @param p_owner The Godot Object that owns the signal
+     * @param p_args Arguments to pass to the connected callbacks
+     * @return Error code from Godot's `Object::emit_signal()`
+     *
+     * Example (pseudo-code):
+     * signal.emit(node, 21, 3.14f);
+     */
+    Error emit(Object &p_owner, const Args &...p_args) const {
+        return p_owner.emit_signal(m_signal_name, p_args...);
+    }
+
+
+
+private:
+    // Internal constructor for creating modified signal with unbind arguments.
+    constexpr TypedSignal(const char *p_signal_name, size_t p_unbind_arg_count)
+        : m_signal_name(p_signal_name)
+        , m_unbind_arg_count(p_unbind_arg_count)
+    {}
+
+};
