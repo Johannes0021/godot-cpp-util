@@ -94,7 +94,7 @@ using namespace godot;
  */
 template <typename T>
 class TypedObjectID {
-    static_assert(std::is_base_of_v<Object, T>, "T must inherit from Object");
+    static_assert(std::is_base_of_v<Object, T>, "T must inherit from Object.");
 
 
 

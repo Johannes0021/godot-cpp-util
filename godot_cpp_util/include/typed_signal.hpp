@@ -1,6 +1,4 @@
 /**
- * Requires C++20 standard.
- *
  * TypedSignal is a type-safe signal abstraction for Godot C++ that enforces correct callable
  * signatures and argument binding at compile time instead of runtime. Supports both binding
  * and unbinding of signal arguments with compile-time safety.
@@ -163,9 +161,14 @@ using namespace godot;
  * F must be a plain function pointer (not a lambda or member function).
  */
 template <typename F, typename ...BoundArgs>
-requires std::is_pointer_v<std::decay_t<F>>
-         && std::is_function_v<std::remove_pointer_t<std::decay_t<F>>>
 class StaticBinding {
+    static_assert(std::is_pointer_v<std::decay_t<F>>, "F must be a function pointer.");
+    static_assert(
+        std::is_function_v<std::remove_pointer_t<std::decay_t<F>>>,
+        "F must point to a function."
+    );
+
+
 
 private:
     template <typename ...Args>
@@ -206,9 +209,11 @@ public:
  * F must be a member function pointer of T.
  */
 template <typename T, typename F, typename ...BoundArgs>
-requires std::derived_from<T, Object>
-         && std::is_member_function_pointer_v<F>
 class MemberBinding {
+    static_assert(std::is_base_of_v<Object, T>, "T must derive from Object.");
+    static_assert(std::is_member_function_pointer_v<F>, "F must be a member function pointer.");
+
+
 
 private:
     template <typename ...Args>
@@ -268,8 +273,10 @@ struct typed_signal_helper_drop_last<N> {
 
 // Recursive case: remove last N elements.
 template <size_t N, typename T, typename ...Ts>
-requires (N > 0)
 struct typed_signal_helper_drop_last<N, T, Ts...> {
+    static_assert(N > 0, "N must be greater than 0.");
+
+
 
 private:
     static constexpr size_t tail_size = sizeof...(Ts);
@@ -412,8 +419,9 @@ public:
      * See `get_unbind_arg_count()` for details.
      */
     template <size_t N>
-    requires (N <= get_arg_count())
     constexpr auto unbind() const {
+        static_assert(N <= get_arg_count(), "N must be less than or equal to the argument count.");
+
         using tuple = typename typed_signal_helper_drop_last<N, Args...>::type;
         using NewTypedSignal = typename typed_signal_helper_tuple_to_signal<tuple>::type;
 
@@ -458,13 +466,20 @@ public:
      *     .connect(node, StaticBinding{my_callback, bound_arg0, bound_arg1, ...});
      */
     template <typename F, typename ...BoundArgs>
-    requires std::invocable<F, Args..., BoundArgs...>
-             && std::same_as<std::invoke_result_t<F, Args..., BoundArgs...>, void>
     Error connect(
         Object &p_owner,
         const StaticBinding<F, BoundArgs...> &p_static_binding,
         uint32_t p_flags = 0
     ) const {
+        static_assert(
+            std::is_invocable_v<F, Args..., BoundArgs...>,
+            "F must be invocable with the provided arguments."
+        );
+        static_assert(
+            std::is_same_v<std::invoke_result_t<F, Args..., BoundArgs...>, void>,
+            "F must return void."
+        );
+
         if (m_unbind_arg_count != 0) {
             return p_owner.connect(
                 m_signal_name,
@@ -520,13 +535,20 @@ public:
      *      );
      */
     template <typename T, typename F, typename ...BoundArgs>
-    requires std::invocable<F, T&, Args..., BoundArgs...>
-             && std::same_as<std::invoke_result_t<F, T&, Args..., BoundArgs...>, void>
     Error connect(
         Object &p_owner,
         const MemberBinding<T, F, BoundArgs...> &p_member_binding,
         uint32_t p_flags = 0
     ) const {
+        static_assert(
+            std::is_invocable_v<F, T&, Args..., BoundArgs...>,
+            "F must be invocable with T& and the provided arguments."
+        );
+        static_assert(
+            std::is_same_v<std::invoke_result_t<F, T&, Args..., BoundArgs...>, void>,
+            "F must return void."
+        );
+
         if (m_unbind_arg_count != 0) {
             return p_owner.connect(
                 m_signal_name,
