@@ -74,6 +74,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <type_traits>
 
 #include <godot_cpp/core/object.hpp>
 
