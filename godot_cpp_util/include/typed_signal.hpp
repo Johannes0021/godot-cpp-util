@@ -48,11 +48,11 @@
  * // =========================
  * // Free function example
  * // =========================
- * inline void print_args(int arg0, float arg1, String arg2, String bound_arg0) {
- *     print_line("Arg 0: ", arg0);
- *     print_line("Arg 1: ", arg1);
- *     print_line("Arg 2: ", arg2);
- *     print_line("Bound arg 0: ", bound_arg0);
+ * inline void print_args(int p_arg0, float p_arg1, String p_arg2, String p_bound_arg0) {
+ *     print_line("Arg 0: ", p_arg0);
+ *     print_line("Arg 1: ", p_arg1);
+ *     print_line("Arg 2: ", p_arg2);
+ *     print_line("Bound arg 0: ", p_bound_arg0);
  * }
  *
  * // =========================
@@ -64,11 +64,11 @@
  * public:
  *     CppObserver() = default;
  *
- *     CppObserver(CppSubject &subject) {
+ *     CppObserver(CppSubject &p_subject) {
  *         // Connect a static function binding with extra bound arguments.
  *         CppSubject::Signal::my_signal
  *             .connect(
- *                 subject,
+ *                 p_subject,
  *                 StaticBinding{
  *                     CppObserver::on_subject_my_callback,
  *                     "bind extra arg 0",
@@ -79,7 +79,7 @@
  *         // Connect a member function binding.
  *         CppSubject::Signal::animation_finished
  *             .connect(
- *                 subject,
+ *                 p_subject,
  *                 MemberBinding{*this, &CppObserver::on_animation_player_animation_finished}
  *             );
  *
@@ -87,7 +87,7 @@
  *         // extra bound argument.
  *         CppSubject::Signal::many_args
  *             .unbind<1>()
- *             .connect(subject, StaticBinding{print_args, "bind extra arg 0"});
+ *             .connect(p_subject, StaticBinding{print_args, "bind extra arg 0"});
  *     }
  *
  * protected:
@@ -95,14 +95,14 @@
  *
  * private:
  *     // Static callback for the static binding example.
- *     static void on_subject_my_callback(String bound_arg0, String bound_arg1) {
- *         print_line("Bound arg 0: ", bound_arg0);
- *         print_line("Bound arg 1: ", bound_arg1);
+ *     static void on_subject_my_callback(String p_bound_arg0, String p_bound_arg1) {
+ *         print_line("Bound arg 0: ", p_bound_arg0);
+ *         print_line("Bound arg 1: ", p_bound_arg1);
  *     }
  *
  *     // Member function callback example.
- *     void on_animation_player_animation_finished(StringName anim_name) {
- *         print_line("Animation finished: ", anim_name);
+ *     void on_animation_player_animation_finished(StringName p_anim_name) {
+ *         print_line("Animation finished: ", p_anim_name);
  *     }
  *
  * };
