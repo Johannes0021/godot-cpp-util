@@ -462,7 +462,7 @@ public:
              && std::same_as<std::invoke_result_t<F, Args..., BoundArgs...>, void>
     Error connect(
         Object &p_owner,
-        StaticBinding<F, BoundArgs...> p_static_binding,
+        const StaticBinding<F, BoundArgs...> &p_static_binding,
         uint32_t p_flags = 0
     ) const {
         if (m_unbind_arg_count != 0) {
@@ -524,7 +524,7 @@ public:
              && std::same_as<std::invoke_result_t<F, T&, Args..., BoundArgs...>, void>
     Error connect(
         Object &p_owner,
-        MemberBinding<T, F, BoundArgs...> p_member_binding,
+        const MemberBinding<T, F, BoundArgs...> &p_member_binding,
         uint32_t p_flags = 0
     ) const {
         if (m_unbind_arg_count != 0) {
