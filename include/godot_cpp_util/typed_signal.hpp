@@ -10,7 +10,7 @@
  * #include <godot_cpp/classes/object.hpp>
  * #include <godot_cpp/core/class_db.hpp>
  *
- * #include "godot_cpp_util/include/typed_signal.hpp"
+ * #include "godot_cpp_util/typed_signal.hpp"
  *
  * using namespace godot;
  *
@@ -141,8 +141,8 @@
 
 
 
-#include <type_traits>
 #include <tuple>
+#include <type_traits>
 
 #include <godot_cpp/classes/object.hpp>
 
