@@ -68,7 +68,7 @@ class ClassData:
 class GodotCppTypeData:
 	var header: String = "<no header>"
 	var name: String = "<no name>"
-	var namespace_: String = "<no name space>"
+	var namespace_: String = "<no namespace>"
 	var needs_forward_class_declaration: bool = false
 	
 	
@@ -221,13 +221,12 @@ func write_gd_signal_header(class_data_array: Array[ClassData], output_path: Str
 			file.store_line("")
 			file.store_line("")
 		
-		file.store_line("namespace %s {" % class_data.name)
-		file.store_line("")
+		file.store_line("struct %s {" % class_data.name)
 		
 		for sig in class_data.signals:
 			if sig.args.is_empty():
 				file.store_line(
-					'inline constexpr TypedSignal<> %s{"%s"};' % [sig.name, sig.name]
+					'    static constexpr TypedSignal %s{"%s"};' % [sig.name, sig.name]
 				)
 			else:
 				var arg_list := []
@@ -244,11 +243,11 @@ func write_gd_signal_header(class_data_array: Array[ClassData], output_path: Str
 				
 				var args_str := ", ".join(arg_list)
 				file.store_line(
-					'inline constexpr TypedSignal<%s> %s{"%s"};' % [args_str, sig.name, sig.name]
+					'    static constexpr TypedSignal<%s> %s{"%s"};'
+						% [args_str, sig.name, sig.name]
 				)
 		
-		file.store_line("")
-		file.store_line("} // namespace %s" % class_data.name)
+		file.store_line("};")
 		file.store_line("")
 		
 		is_first_entry = false
