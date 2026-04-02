@@ -36,7 +36,7 @@ extends Node
 
 
 
-const OUTPUT_FILE_PATH: String = "res://gd_signal.hpp"
+const OUTPUT_FILE_PATH: String = "res://gen/include/godot_cpp_util/gd_signal.hpp"
 
 
 
@@ -62,6 +62,7 @@ class ClassData:
 class GodotCppTypeData:
 	var header: String = "<no header>"
 	var name: String = "<no name>"
+	var name_space: String = "<no name space>"
 	var needs_forward_class_declaration: bool = false
 
 
@@ -92,7 +93,10 @@ func collect_class_data() -> Array[ClassData]:
 				arg_data.type = arg.type
 				arg_data.name = arg.name
 				if arg.type == Variant.Type.TYPE_OBJECT:
-					arg_data.object_class_name = arg.class_name
+					if arg.class_name.is_empty():
+						arg_data.object_class_name = "Object"
+					else:
+						arg_data.object_class_name = arg.class_name
 				
 				signal_data.args.push_back(arg_data)
 			
@@ -105,6 +109,19 @@ func collect_class_data() -> Array[ClassData]:
 
 
 func write_gdsignal_header(class_data_array: Array[ClassData], output_path: String) -> void:
+	# Create parent folder.
+	var parent_dir_path := output_path.get_base_dir()
+	var parent_dir := DirAccess.open(output_path.get_base_dir())
+	if not parent_dir:
+		var err := DirAccess.make_dir_recursive_absolute(parent_dir_path)
+		if err != Error.OK:
+			push_error(
+				"Cannot create directories for path (Error: %d): %s"
+					% [err, parent_dir_path]
+			)
+			return
+	
+	# Now open the file.
 	var file := FileAccess.open(output_path, FileAccess.WRITE)
 	if not file:
 		push_error("Cannot open file: %s" % output_path)
@@ -142,16 +159,20 @@ func write_gdsignal_header(class_data_array: Array[ClassData], output_path: Stri
 	file.store_line("")
 	file.store_line("")
 	file.store_line('#include "godot_cpp_util/typed_signal.hpp"')
+	file.store_line("")
 	for i in includes:
 		file.store_line('#include %s' % i)
 	file.store_line("")
 	file.store_line("")
 	file.store_line("")
-	for d in forward_class_declarations:
-		file.store_line('class %s;' % d)
-	file.store_line("")
-	file.store_line("")
-	file.store_line("")
+	if not forward_class_declarations.is_empty():
+		file.store_line("namespace godot {")
+		for d in forward_class_declarations:
+			file.store_line('class %s;' % d)
+		file.store_line("} // namespace godot")
+		file.store_line("")
+		file.store_line("")
+		file.store_line("")
 	file.store_line("namespace godot::GDSignal {")
 	file.store_line("")
 	
@@ -172,9 +193,14 @@ func write_gdsignal_header(class_data_array: Array[ClassData], output_path: Stri
 			else:
 				var arg_list := []
 				for arg in sig.args:
-					var cpp_type := get_godot_cpp_type_data(arg.type).name
+					var cpp_type_data := get_godot_cpp_type_data(arg.type)
+					var cpp_type := cpp_type_data.name
 					if arg.type == Variant.Type.TYPE_OBJECT:
 						cpp_type = "%s*" % arg.object_class_name
+						
+					if not cpp_type_data.name_space.is_empty():
+						cpp_type = cpp_type_data.name_space + cpp_type
+					
 					arg_list.append("%s /* %s */" % [cpp_type, arg.name])
 				
 				var args_str := ", ".join(arg_list)
@@ -193,32 +219,43 @@ func write_gdsignal_header(class_data_array: Array[ClassData], output_path: Stri
 	file.close()
 	
 	var abs_path := ProjectSettings.globalize_path(output_path)
-	print("Header written to:", abs_path)
+	print("Header written to: '%s'" % abs_path)
 
 
 
 func get_godot_cpp_type_data(variant_type: Variant.Type) -> GodotCppTypeData:
 	var data := GodotCppTypeData.new()
-	data.name = type_string(variant_type)
 	
 	match variant_type:
 		Variant.Type.TYPE_NIL:
-			data.name = "void"
+			data.name = "Variant"
+			data.name_space = "godot::"
 			data.header = ""
 		
 		Variant.Type.TYPE_BOOL:
 			data.name = "bool"
+			data.name_space = ""
 			data.header = ""
 		
 		Variant.Type.TYPE_INT:
 			data.name = "int64_t"
+			data.name_space = ""
 			data.header = "<cstdint>"
 		
 		Variant.Type.TYPE_FLOAT:
 			data.name = "real_t"
+			data.name_space = "godot::"
 			data.header = "<godot_cpp/core/math_defs.hpp>"
 		
 		_:
+			if variant_type == TYPE_MAX:
+				data.name = "Variant"
+			else:
+				data.name = type_string(variant_type)
+				if data.name.is_empty():
+					data.name = "Variant"
+			
+			data.name_space = "godot::"
 			data.header = ""
 			data.needs_forward_class_declaration = true
 	
