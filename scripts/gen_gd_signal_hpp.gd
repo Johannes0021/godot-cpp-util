@@ -226,7 +226,7 @@ func write_gd_signal_header(class_data_array: Array[ClassData], output_path: Str
 		for sig in class_data.signals:
 			if sig.args.is_empty():
 				file.store_line(
-					'    static constexpr TypedSignal %s{"%s"};' % [sig.name, sig.name]
+					'    static inline const TypedSignal %s{"%s"};' % [sig.name, sig.name]
 				)
 			else:
 				var arg_list := []
@@ -243,7 +243,7 @@ func write_gd_signal_header(class_data_array: Array[ClassData], output_path: Str
 				
 				var args_str := ", ".join(arg_list)
 				file.store_line(
-					'    static constexpr TypedSignal<%s> %s{"%s"};'
+					'    static inline const TypedSignal<%s> %s{"%s"};'
 						% [args_str, sig.name, sig.name]
 				)
 		
