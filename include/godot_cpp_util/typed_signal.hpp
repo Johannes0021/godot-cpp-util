@@ -155,30 +155,11 @@
 
 #include <godot_cpp/classes/object.hpp>
 
+#include "static_string_name.hpp"
+
 
 
 using namespace godot;
-
-
-
-//==================================================================================================
-// SignalName struct
-//==================================================================================================
-
-template<std::size_t N>
-struct SignalName {
-
-    char c_str[N]{};
-
-
-
-    constexpr SignalName(const char(&p_name)[N]) {
-        for(std::size_t i = 0; i < N; ++i) {
-            c_str[i] = p_name[i];
-        }
-    }
-
-};
 
 
 
@@ -196,7 +177,7 @@ requires std::is_pointer_v<std::decay_t<F>>
 class StaticBinding {
 
 private:
-    template <SignalName Name, typename ...Args>
+    template <StaticStringNameData Name, typename ...Args>
     friend class TypedSignal;
 
 
@@ -239,7 +220,7 @@ requires std::derived_from<T, Object>
 class MemberBinding {
 
 private:
-    template <SignalName Name, typename ...Args>
+    template <StaticStringNameData Name, typename ...Args>
     friend class TypedSignal;
 
 
@@ -321,18 +302,18 @@ public:
 // typed_signal_helper_tuple_to_signal -------------------------------------------------------------
 
 // Converts a tuple of types into a TypedSignal with those types.
-template <SignalName Name, typename Tuple>
+template <StaticStringNameData Name, typename Tuple>
 struct typed_signal_helper_tuple_to_signal;
 
 
 
 // Forward declaration.
-template<SignalName Name, typename ...Args>
+template<StaticStringNameData Name, typename ...Args>
 class TypedSignal;
 
 
 
-template <SignalName Name, typename ...Ts>
+template <StaticStringNameData Name, typename ...Ts>
 struct typed_signal_helper_tuple_to_signal<Name, std::tuple<Ts...>> {
     using type = TypedSignal<Name, Ts...>;
 };
@@ -348,11 +329,11 @@ struct typed_signal_helper_tuple_to_signal<Name, std::tuple<Ts...>> {
  * signatures and argument binding at compile time instead of runtime. Supports both binding
  * and unbinding of signal arguments with compile-time safety.
  */
-template<SignalName Name, typename ...Args>
+template<StaticStringNameData Name, typename ...Args>
 class TypedSignal {
 
 private:
-    template <SignalName OtherName, typename...>
+    template <StaticStringNameData OtherName, typename...>
     friend class TypedSignal;
 
 
@@ -381,10 +362,8 @@ public:
 
 
     // Returns the signal name.
-    const StringName& get_name() const {
-        static const StringName sname{Name.c_str, true};
-
-        return sname;
+    static const StringName& get_name() {
+        return StaticStringName<Name>::get();
     }
 
 
@@ -405,9 +384,9 @@ public:
      * auto reduced_sig = sig.unbind<2>(); // removes last 2 arguments
      * auto reduced_reduced_sig = sig.unbind<1>(); // removes last argument
      *
-     * sig.get_unbind_arg_count(); // returns 4
+     * sig.get_unbind_arg_count(); // returns 0
      * reduced_sig.get_unbind_arg_count(); // returns 2
-     * reduced_reduced_sig.get_unbind_arg_count(); // returns 1
+     * reduced_reduced_sig.get_unbind_arg_count(); // returns 3
      */
     std::size_t get_unbind_arg_count() const {
         return m_unbind_arg_count;
@@ -426,9 +405,9 @@ public:
      * auto reduced_sig = sig.unbind<2>(); // removes last 2 arguments
      * auto reduced_reduced_sig = sig.unbind<1>(); // removes last argument
      *
-     * sig.get_unbind_arg_count(); // returns 4
+     * sig.get_unbind_arg_count(); // returns 0
      * reduced_sig.get_unbind_arg_count(); // returns 2
-     * reduced_reduced_sig.get_unbind_arg_count(); // returns 1
+     * reduced_reduced_sig.get_unbind_arg_count(); // returns 3
      *
      * sig.get_original_arg_count(); // returns 4
      * reduced_sig.get_original_arg_count(); // returns 4
@@ -446,6 +425,24 @@ public:
      *
      * The returned signal keeps track of how many arguments should be unbound.
      * See `get_unbind_arg_count()` for details.
+     *
+     * Example (pseudo-code):
+     * // Original signal: 4 arguments
+     * TypedSignal<"my_signal", int, float, String, int> sig{};
+     *
+     * // Unbind last 2 arguments
+     * TypedSignal<"my_signal", int, float> reduced_sig = sig.unbind<2>();
+     * // reduced_sig now has types: int, float
+     * // unbind count = 2
+     *
+     * // Unbind last argument from the reduced signal
+     * TypedSignal<"my_signal", int> reduced_reduced_sig = reduced_sig.unbind<1>();
+     * // reduced_reduced_sig now has types: int
+     * // unbind count = 3 (2 from reduced_sig + 1 more)
+     *
+     * // Original signal remains unchanged
+     * TypedSignal<"my_signal", int, float, String, int> original_sig_copy = sig;
+     * // unbind count = 0
      */
     template <std::size_t N>
     requires (N <= get_arg_count())
