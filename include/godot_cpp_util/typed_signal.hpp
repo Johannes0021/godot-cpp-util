@@ -167,13 +167,17 @@ using namespace godot;
 
 template<std::size_t N>
 struct SignalName {
+
     char c_str[N]{};
 
+
+
     constexpr SignalName(const char(&p_name)[N]) {
-        for(std::size_t i = 0; i < N; i++) {
+        for(std::size_t i = 0; i < N; ++i) {
             c_str[i] = p_name[i];
         }
     }
+
 };
 
 
@@ -378,7 +382,7 @@ public:
 
     // Returns the signal name.
     const StringName& get_name() const {
-        static const StringName sname = StringName(Name.c_str, true);
+        static const StringName sname{Name.c_str, true};
 
         return sname;
     }
