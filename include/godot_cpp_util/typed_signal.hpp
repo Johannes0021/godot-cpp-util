@@ -401,7 +401,7 @@ public:
      * For the full original argument count, see `get_original_arg_count()`.
      *
      * Example (pseudo-code):
-     * auto sig = TypedSignal<int, float, String, int>{"my_signal"};
+     * TypedSignal<"my_signal", int, float, String, int> sig{};
      * auto reduced_sig = sig.unbind<2>(); // removes last 2 arguments
      * auto reduced_reduced_sig = sig.unbind<1>(); // removes last argument
      *
@@ -422,7 +422,7 @@ public:
      * `get_unbind_arg_count()` (arguments that were removed via `unbind<N>()`).
      *
      * Example (pseudo-code):
-     * auto sig = TypedSignal<int, float, String, int>{"my_signal"};
+     * TypedSignal<"my_signal", int, float, String, int> sig{};
      * auto reduced_sig = sig.unbind<2>(); // removes last 2 arguments
      * auto reduced_reduced_sig = sig.unbind<1>(); // removes last argument
      *
@@ -479,7 +479,7 @@ public:
      *
      * Example (pseudo-code):
      * // Original signal has four arguments: int, float, String, int
-     * TypedSignal<int, float, String, int> signal{"my_signal"};
+     * TypedSignal<"my_signal", int, float, String, int> sig{};
      *
      * // Static callback expects all arguments from the signal
      * void my_callback_no_extra(int x, float y, String z, int w) { ... }
@@ -538,7 +538,7 @@ public:
      *
      * Example (pseudo-code):
      * // Original signal has four arguments: int, float, String, int
-     * TypedSignal<int, float, String, int> signal{"my_signal"};
+     * TypedSignal<"my_signal", int, float, String, int> sig{};
      *
      * // Member callback expects all arguments from the signal
      * void MyGDObject::my_callback_no_extra(int x, float y, String z, int w) { ... }
