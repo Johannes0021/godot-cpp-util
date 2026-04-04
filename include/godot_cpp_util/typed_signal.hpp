@@ -159,7 +159,7 @@
 
 
 
-using namespace godot;
+namespace godot {
 
 
 
@@ -430,17 +430,17 @@ public:
      * // Original signal: 4 arguments
      * TypedSignal<"my_signal", int, float, String, int> sig{};
      *
-     * // Unbind last 2 arguments
+     * // Unbind last 2 arguments.
      * TypedSignal<"my_signal", int, float> reduced_sig = sig.unbind<2>();
      * // reduced_sig now has types: int, float
      * // unbind count = 2
      *
-     * // Unbind last argument from the reduced signal
+     * // Unbind last argument from the reduced signal.
      * TypedSignal<"my_signal", int> reduced_reduced_sig = reduced_sig.unbind<1>();
      * // reduced_reduced_sig now has types: int
      * // unbind count = 3 (2 from reduced_sig + 1 more)
      *
-     * // Original signal remains unchanged
+     * // Original signal remains unchanged.
      * TypedSignal<"my_signal", int, float, String, int> original_sig_copy = sig;
      * // unbind count = 0
      */
@@ -685,3 +685,7 @@ private:
     {}
 
 };
+
+
+
+} // namespace godot

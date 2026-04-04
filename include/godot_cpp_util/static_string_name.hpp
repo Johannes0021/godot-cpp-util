@@ -15,7 +15,7 @@
 
 
 
-using namespace godot;
+namespace godot {
 
 
 
@@ -71,3 +71,7 @@ struct StaticStringName {
     }
 
 };
+
+
+
+} // namespace godot

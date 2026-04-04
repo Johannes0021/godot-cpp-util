@@ -82,7 +82,7 @@
 
 
 
-using namespace godot;
+namespace godot {
 
 
 
@@ -181,3 +181,7 @@ public:
     }
 
 };
+
+
+
+} // namespace godot
