@@ -1,4 +1,6 @@
 /**
+ * Requires C++20 standard.
+ *
  * TypedObjectID is a convenience wrapper for a Godot ObjectID.
  *
  * This template class stores a Godot ObjectID and provides helper functions to retrieve the object
@@ -72,9 +74,9 @@
 
 
 
+#include <concepts>
 #include <cstdlib>
 #include <iostream>
-#include <type_traits>
 
 #include <godot_cpp/core/object.hpp>
 
@@ -94,10 +96,8 @@ using namespace godot;
  * @tparam T The Godot object type used for casting. Must inherit from godot::Object.
  */
 template <typename T>
+requires std::derived_from<T, Object>
 class TypedObjectID {
-    static_assert(std::is_base_of_v<Object, T>, "T must inherit from Object.");
-
-
 
 private:
     ObjectID m_id{};
