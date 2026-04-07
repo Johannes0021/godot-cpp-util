@@ -14,7 +14,7 @@
  * #include <godot_cpp/classes/animation_player.hpp>
  * #include <godot_cpp/classes/node2d.hpp>
  *
- * #include "godot_cpp_util/typed_object_id.hpp"
+ * #include "godot_cpp_util/core/object/typed_object_id.hpp"
  *
  * using namespace godot;
  *

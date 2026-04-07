@@ -15,8 +15,8 @@
  * #include <godot_cpp/classes/object.hpp>
  * #include <godot_cpp/core/class_db.hpp>
  *
- * #include "godot_cpp_util/typed_signal.hpp"
- * // #include "godot_cpp_util/gd_signal.hpp" // See comment on optional inheritance.
+ * #include "godot_cpp_util/core/variant/typed_signal.hpp"
+ * // #include "godot_cpp_util/core/variant/gd_signal.hpp" // See comment on optional inheritance.
  *
  * using namespace godot;
  *
@@ -155,7 +155,7 @@
 
 #include <godot_cpp/classes/object.hpp>
 
-#include "static_string_name.hpp"
+#include "godot_cpp_util/core/string/static_string_name.hpp"
 
 
 

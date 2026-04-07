@@ -27,8 +27,8 @@
 # - A C++ header file containing TypedSignal definitions for all class signals.
 # - Can be included directly in your godot-cpp project.
 #
-# Note: The generated header depends on "godot_cpp_util/typed_signal.hpp" and must be included in
-# your C++ project before using the TypedSignal definitions.
+# Note: The generated header depends on "godot_cpp_util/core/variant/typed_signal.hpp" and must be
+# included in your C++ project before using the TypedSignal definitions.
 
 
 
@@ -36,7 +36,7 @@ extends Node
 
 
 
-const OUTPUT_FILE_PATH: String = "res://gen/include/godot_cpp_util/gd_signal.hpp"
+const OUTPUT_FILE_PATH: String = "res://gen/include/godot_cpp_util/core/variant/gd_signal.hpp"
 
 
 
@@ -195,7 +195,7 @@ func write_gd_signal_header(class_data_array: Array[ClassData], output_path: Str
 	file.store_line("")
 	file.store_line("")
 	file.store_line("")
-	file.store_line('#include "godot_cpp_util/typed_signal.hpp"')
+	file.store_line('#include "godot_cpp_util/core/variant/typed_signal.hpp"')
 	file.store_line("")
 	for i in includes:
 		file.store_line('#include %s' % i)
