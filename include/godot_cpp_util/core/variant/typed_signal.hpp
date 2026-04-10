@@ -12,8 +12,8 @@
  *
  * #pragma once
  *
- * #include <godot_cpp/classes/object.hpp>
- * #include <godot_cpp/core/class_db.hpp>
+ * #include "godot_cpp/classes/object.hpp"
+ * #include "godot_cpp/core/class_db.hpp"
  *
  * #include "godot_cpp_util/core/variant/typed_signal.hpp"
  * // #include "godot_cpp_util/core/variant/gd_typed_signal.hpp" // See comment on optional
@@ -154,7 +154,7 @@
 #include <concepts>
 #include <tuple>
 
-#include <godot_cpp/classes/object.hpp>
+#include "godot_cpp/classes/object.hpp"
 
 #include "godot_cpp_util/core/string/static_string_name.hpp"
 

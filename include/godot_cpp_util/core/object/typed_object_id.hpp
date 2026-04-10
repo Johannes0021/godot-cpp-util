@@ -11,8 +11,8 @@
  *
  * #pragma once
  *
- * #include <godot_cpp/classes/animation_player.hpp>
- * #include <godot_cpp/classes/node2d.hpp>
+ * #include "godot_cpp/classes/animation_player.hpp"
+ * #include "godot_cpp/classes/node2d.hpp"
  *
  * #include "godot_cpp_util/core/object/typed_object_id.hpp"
  *
@@ -78,7 +78,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include <godot_cpp/core/object.hpp>
+#include "godot_cpp/core/object.hpp"
 
 
 
