@@ -28,7 +28,7 @@ namespace godot {
  * Used as a non type template parameter.
  */
 template<std::size_t N>
-struct StaticStringNameData {
+struct StaticStringNameData final {
 
     char c_str[N]{};
 
@@ -54,7 +54,7 @@ struct StaticStringNameData {
  * a static variable.
  */
 template<StaticStringNameData Name>
-struct StaticStringName {
+struct StaticStringName final {
 
     /// Returns the shared StringName instance.
     static const StringName& get() {

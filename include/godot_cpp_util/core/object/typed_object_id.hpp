@@ -97,7 +97,7 @@ namespace godot {
  */
 template <typename T>
 requires std::derived_from<T, Object>
-class TypedObjectID {
+class TypedObjectID final {
 
 private:
     ObjectID m_id{};

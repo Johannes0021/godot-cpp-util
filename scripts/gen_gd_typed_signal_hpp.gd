@@ -1,4 +1,4 @@
-# GDSignal (TypedSignal) Header Generator
+# GDTypedSignal (TypedSignal) Header Generator
 #
 # This script generates a C++ TypedSignal definition for every class and every standard signal
 # registered in Godot's ClassDB.
@@ -36,13 +36,13 @@ extends Node
 
 
 
-const OUTPUT_FILE_PATH: String = "res://gen/include/godot_cpp_util/core/variant/gd_signal.hpp"
+const OUTPUT_FILE_PATH: String = "res://gen/include/godot_cpp_util/core/variant/gd_typed_signal.hpp"
 
 
 
 func _ready() -> void:
 	var class_data := collect_class_data()
-	write_gd_signal_header(class_data, OUTPUT_FILE_PATH)
+	write_gd_typed_signal_header(class_data, OUTPUT_FILE_PATH)
 
 
 
@@ -144,7 +144,7 @@ func collect_class_data() -> Array[ClassData]:
 
 
 
-func write_gd_signal_header(class_data_array: Array[ClassData], output_path: String) -> void:
+func write_gd_typed_signal_header(class_data_array: Array[ClassData], output_path: String) -> void:
 	# Create parent folder.
 	var parent_dir_path := output_path.get_base_dir()
 	var parent_dir := DirAccess.open(output_path.get_base_dir())
@@ -212,7 +212,7 @@ func write_gd_signal_header(class_data_array: Array[ClassData], output_path: Str
 		file.store_line("")
 		file.store_line("")
 		file.store_line("")
-	file.store_line("namespace godot::GDSignal {")
+	file.store_line("namespace godot::GDTypedSignal {")
 	file.store_line("")
 	
 	var is_first_entry: bool = true
@@ -222,6 +222,7 @@ func write_gd_signal_header(class_data_array: Array[ClassData], output_path: Str
 			file.store_line("")
 		
 		file.store_line("struct %s {" % class_data.name)
+		file.store_line("    virtual ~%s() = default;" % class_data.name)
 		
 		for sig in class_data.signals:
 			if sig.args.is_empty():
@@ -252,7 +253,7 @@ func write_gd_signal_header(class_data_array: Array[ClassData], output_path: Str
 		
 		is_first_entry = false
 	
-	file.store_line("} // namespace godot::GDSignal")
+	file.store_line("} // namespace godot::GDTypedSignal")
 	file.close()
 	
 	var abs_path := ProjectSettings.globalize_path(output_path)
