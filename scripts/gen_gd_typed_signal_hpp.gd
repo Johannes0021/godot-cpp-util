@@ -93,7 +93,7 @@ class GodotCppTypeData:
 			Variant.Type.TYPE_FLOAT:
 				name = "real_t"
 				namespace_ = "godot::"
-				header = "<godot_cpp/core/math_defs.hpp>"
+				header = "\"godot_cpp/core/math_defs.hpp\""
 			
 			_:
 				if variant_type == TYPE_MAX:
