@@ -32,7 +32,7 @@
 
 
 
-#if __has_include("entt/core/any.hpp")
+#if __has_include("entt/entity/registry.hpp")
     #include "entt/entity/registry.hpp"
 #elif __has_include("entt/entt.hpp")
     #include "entt/entt.hpp"

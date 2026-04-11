@@ -262,6 +262,9 @@ private:
  * be added to that array. When the property is set, the Entity iterates over the array and calls
  * emplace_or_replace on each component in sequence.
  *
+ * For macros that are intended to make it easier to define a component class(GDCLASS) see
+ * "macros_impl.hpp"
+ *
  * Usage Example:
  *
  * #pragma once
