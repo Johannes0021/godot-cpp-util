@@ -19,8 +19,7 @@
 
 
 
-#ifndef GODOT_CPP_UTIL_ECS_MACROS_IMPL_HPP
-#define GODOT_CPP_UTIL_ECS_MACROS_IMPL_HPP
+#pragma once
 
 
 
@@ -678,7 +677,3 @@ GD_ECS_COMPONENT_MULTI_WITH_PARENT(                                             
 
 
 } // namespace GD_ECS_NAMESPACE
-
-
-
-#endif // GODOT_CPP_UTIL_ECS_MACROS_IMPL_HPP
