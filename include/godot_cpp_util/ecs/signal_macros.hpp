@@ -23,7 +23,7 @@
 
 
 
-#else // !defined(GD_ECS_DO_NOT_GENERATE_SIGNAL_CODE)
+#else // defined(GD_ECS_DO_NOT_GENERATE_SIGNAL_CODE)
 
 
 
@@ -43,4 +43,4 @@ struct SIGNAL_STRUCT_NAME {};
 
 
 
-#endif // !defined(GD_ECS_DO_NOT_GENERATE_SIGNAL_CODE)
+#endif // defined(GD_ECS_DO_NOT_GENERATE_SIGNAL_CODE)
