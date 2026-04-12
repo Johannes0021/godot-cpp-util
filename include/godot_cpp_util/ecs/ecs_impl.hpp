@@ -26,10 +26,13 @@
  *
  * #pragma once
  *
- * #include "godot_cpp_util/ecs/ecs_impl.hpp"
+ * #include "entt/entity/registry.hpp"
+ * #include "ecs_impl.hpp"
+ *
+ * GD_ECS_IMPL(godot, ECS, Entity, Component, entt::registry)
  *
  * // Register types to Godot:
- * GD_ECS_NAMESPACE::GD_ECS_SINGLETON_NAME::register_types();
+ * godot::ECS::register_types();
  *
  *
  *

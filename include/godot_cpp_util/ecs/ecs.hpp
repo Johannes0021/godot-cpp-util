@@ -14,7 +14,7 @@
  * #include "godot_cpp_util/ecs/ecs.hpp"
  *
  * // Register types to Godot:
- * ECS::register_types();
+ * godot::ECS::register_types();
  */
 
 
