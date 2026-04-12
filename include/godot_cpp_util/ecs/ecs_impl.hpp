@@ -101,7 +101,7 @@
     #endif
 
     #ifndef GD_ECS_REGISTRY_TYPE
-        #error "GD_ECS_REGISTRY_TYPE is not defined. Define it before including this header."
+        #error "GD_ECS_REGISTRY_TYPE is not defined."
     #endif
 
     #ifndef GD_ECS_REGISTRY_CONSTRUCTION_ARGS
@@ -121,28 +121,27 @@
     #endif
 #else
     #ifndef GD_ECS_NAMESPACE
-        #error "GD_ECS_NAMESPACE is not defined. Define it before including this header."
+        #error "GD_ECS_NAMESPACE is not defined."
     #endif
 
     #ifndef GD_ECS_REGISTRY_TYPE
-        #error "GD_ECS_REGISTRY_TYPE is not defined. Define it before including this header."
+        #error "GD_ECS_REGISTRY_TYPE is not defined."
     #endif
 
     #ifndef GD_ECS_REGISTRY_CONSTRUCTION_ARGS
-        #error "GD_ECS_REGISTRY_CONSTRUCTION_ARGS is not defined. \
-                Define it before including this header."
+        #error "GD_ECS_REGISTRY_CONSTRUCTION_ARGS is not defined."
     #endif
 
     #ifndef GD_ECS_SINGLETON_NAME
-        #error "GD_ECS_SINGLETON_NAME is not defined. Define it before including this header."
+        #error "GD_ECS_SINGLETON_NAME is not defined."
     #endif
 
     #ifndef GD_ECS_ENTITY_NAME
-        #error "GD_ECS_ENTITY_NAME is not defined. Define it before including this header."
+        #error "GD_ECS_ENTITY_NAME is not defined."
     #endif
 
     #ifndef GD_ECS_COMPONENT_NAME
-        #error "GD_ECS_COMPONENT_NAME is not defined. Define it before including this header."
+        #error "GD_ECS_COMPONENT_NAME is not defined."
     #endif
 #endif
 
@@ -157,6 +156,20 @@
 #include "godot_cpp/core/class_db.hpp"
 
 #include "macros_impl.hpp"
+
+
+
+// __has_include might not exist on very old compilers.
+#if !defined(__has_include)
+  #define __has_include(x) 0
+#endif
+
+
+
+#if __has_include("godot_cpp_util/core/variant/gd_typed_signal.hpp")
+    #include "godot_cpp_util/core/variant/typed_signal.hpp"
+    #include "godot_cpp_util/core/variant/gd_typed_signal.hpp"
+#endif
 
 
 
@@ -328,6 +341,16 @@ class GD_ECS_COMPONENT_NAME : public godot::Resource {
 
 
 public:
+#if __has_include("godot_cpp_util/core/variant/gd_typed_signal.hpp")
+    struct Signal : public GDTypedSignal::Resource {
+#else
+    struct Signal {
+#endif
+    };
+
+
+
+public:
     /**
      * Transfers the component data from the Godot resource into the ECS registry.
      *
@@ -367,6 +390,16 @@ protected:
  */
 class GD_ECS_ENTITY_NAME : public godot::Node {
     GDCLASS(GD_ECS_ENTITY_NAME, godot::Node)
+
+
+
+public:
+#if __has_include("godot_cpp_util/core/variant/gd_typed_signal.hpp")
+    struct Signal : public GDTypedSignal::Node {
+#else
+    struct Signal {
+#endif
+    };
 
 
 
