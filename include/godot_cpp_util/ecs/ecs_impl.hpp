@@ -27,7 +27,7 @@
  * #pragma once
  *
  * #include "entt/entity/registry.hpp"
- * #include "ecs_impl.hpp"
+ * #include "godot_cpp_util/ecs/ecs_impl.hpp"
  *
  * GD_ECS_IMPL(godot, ECS, Entity, Component, entt::registry)
  *
