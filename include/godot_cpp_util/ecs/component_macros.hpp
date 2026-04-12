@@ -23,10 +23,6 @@
 
 
 
-namespace GD_ECS_NAMESPACE {
-
-
-
 //==================================================================================================
 // GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE
 //==================================================================================================
@@ -673,7 +669,3 @@ GD_ECS_COMPONENT_MULTI_WITH_PARENT(                                             
     ECS_COMPONENT_NAME,                                                                            \
     FIELD_LIST                                                                                     \
 )
-
-
-
-} // namespace GD_ECS_NAMESPACE
