@@ -243,6 +243,8 @@ GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                          
 //==================================================================================================
 
 /**
+ * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
+ *
  * using ECSType = godot::ECS;
  *
  * struct Marker {};
@@ -536,6 +538,8 @@ GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(                          
 //==================================================================================================
 
 /**
+ * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
+ *
  * using ECSType = godot::ECS;
  *
  * struct Single {
@@ -632,6 +636,8 @@ GD_ECS_COMPONENT_WITH_PARENT(                                                   
 //==================================================================================================
 
 /**
+ * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
+ *
  * using ECSType = godot::ECS;
  *
  * struct Multi {
