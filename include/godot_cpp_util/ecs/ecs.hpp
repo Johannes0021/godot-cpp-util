@@ -3,7 +3,7 @@
  * (https://github.com/skypjack/entt).
  *
  * If the default configuration is not suitable or EnTT is not used, refer to "ecs_impl.hpp" and
- * define a modified configuration it with the GD_ECS_IMPL macro.
+ * define a modified configuration with the GD_ECS_IMPL macro.
  *
  * For more information on how to use the ECS, refer to the other files in this directory.
  *
