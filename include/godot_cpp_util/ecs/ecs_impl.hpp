@@ -28,6 +28,8 @@
  * // Register types to Godot:
  * GD_ECS_NAMESPACE::GD_ECS_SINGLETON_NAME::register_types();
  *
+ *
+ *
  * -------------------------------------------------------------------------------------------------
  * ECS Registry Requirement
  * -------------------------------------------------------------------------------------------------
@@ -75,6 +77,7 @@
  *         ) {}
  * };
  */
+
 
 
 #pragma once
@@ -163,6 +166,8 @@
  *
  * #include "godot_cpp_util/ecs/ecs.hpp"
  *
+ * using ECSType = godot::ECS;
+ *
  * // Example ECS component stored in the registry.
  * struct Point {
  *     godot::Vector2 pos{};
@@ -170,8 +175,8 @@
  *
  * // Godot-facing component that exposes Point data to the editor and transfers it into the ECS
  * // registry.
- * class GDPoint : public GD_ECS_NAMESPACE::GD_ECS_COMPONENT_NAME {
- *     GDCLASS(GDPoint, GD_ECS_NAMESPACE::GD_ECS_COMPONENT_NAME)
+ * class GDPoint : public ECSType::ComponentType {
+ *     GDCLASS(GDPoint, ECSType::ComponentType)
  *
  * private:
  *     godot::Vector2 m_pos{};
@@ -182,13 +187,13 @@
  *     // Implementations are expected to emplace or replace the corresponding ECS component for the
  *     // given entity.
  *     //
- *     // The default implementation only adds a godot::Ref<GD_ECS_COMPONENT_NAME> to the registry.
- *     virtual void emplace_or_replace(GD_ECS_NAMESPACE::GD_ECS_ENTITY_NAME &p_entity) override {
+ *     // The default implementation only adds a godot::Ref<ECSType::ComponentType> to the registry.
+ *     virtual void emplace_or_replace(ECSType::EntityType &p_entity) override {
  *         // Derived implementations may call the base implementation to also apply base class
  *         // components.
- *         // GD_ECS_NAMESPACE::GD_ECS_COMPONENT_NAME::emplace_or_replace(p_entity);
+ *         // ECSType::ComponentType::emplace_or_replace(p_entity);
  *
- *         auto &ecs = GD_ECS_NAMESPACE::GD_ECS_SINGLETON_NAME::get_instance();
+ *         auto &ecs = ECSType::get_instance();
  *         auto &reg = ecs.get_registry();
  *
  *         reg.emplace_or_replace<Point>(p_entity.get_entity(), m_pos);
@@ -215,7 +220,7 @@
  * };
  *
  * // Do not forget to expose the new component to Godot:
- * // GD_ECS_NAMESPACE::GD_ECS_SINGLETON_NAME::register_types();
+ * // ECSType::register_types();
  * // // ...
  * // GDREGISTER_RUNTIME_CLASS(GDPoint);
  */
