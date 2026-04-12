@@ -2,10 +2,8 @@
  * This header provides a default ECS configuration based on the C++ ECS library EnTT
  * (https://github.com/skypjack/entt).
  *
- * If the default configuration is not suitable, refer to "clear_ecs_defines.hpp".
- *
- * If EnTT is not used, refer to "clear_ecs_defines.hpp" and the comment regarding the Registry
- * interface in "ecs_impl.hpp".
+ * If the default configuration is not suitable or EnTT is not used, refer to "ecs_impl.hpp" and
+ * define a modified configuration it with the GD_ECS_IMPL macro.
  *
  * For more information on how to use the ECS, refer to the other files in this directory.
  *
@@ -42,20 +40,8 @@
 
 
 
-#include "godot_cpp_util/ecs/clear_ecs_defines.hpp"
-
-
-
-#undef GD_ECS_DO_NOT_DEFINE_DEFAULTS
-
-
-
-#define GD_ECS_REGISTRY_TYPE entt::registry
-
-
-
 #include "ecs_impl.hpp"
 
 
 
-#undef GD_ECS_DO_NOT_DEFINE_DEFAULTS
+GD_ECS_IMPL(godot, ECS, Entity, Component, entt::registry)
