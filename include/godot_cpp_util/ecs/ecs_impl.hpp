@@ -76,6 +76,27 @@
  *             [[maybe_unused]] Args &&...args
  *         ) {}
  * };
+ *
+ *
+ *
+ * -------------------------------------------------------------------------------------------------
+ * Note on macro arguments containing commas
+ * -------------------------------------------------------------------------------------------------
+ *
+ * The C preprocessor treats commas as argument separators in macro calls.
+ * This means template expressions like MyType<T, U> will be split into multiple macro arguments and
+ * can cause errors.
+ *
+ * If you need to pass a templated type or any expression containing commas, wrap it using one of
+ * the following approaches:
+ *
+ * 1. Type alias
+ *     using MyCleanArg = MyArg<T, U>;
+ *     MY_MACRO(MyCleanArg)
+ *
+ * 2. Helper macro
+ *     #define MY_CLEAN_ARG MyArg<T, U>
+ *     MY_MACRO(MY_CLEAN_ARG)
  */
 
 
@@ -97,9 +118,7 @@
 //==================================================================================================
 
 /**
- * This macro defines the following classes.
- *
- *
+ * This macro defines the following classes:
  *
  * -------------------------------------------------------------------------------------------------
  * GD_ECS_SINGLETON_NAME class
