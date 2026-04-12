@@ -2,6 +2,9 @@
  * This header provides macros that are intended to make it easier to define a component class
  * (GDCLASS).
  *
+ * Define GD_ECS_DO_NOT_GENERATE_SIGNAL_CODE before including this file to completely disable all
+ * generated signal code.
+ *
  * Usage Example:
  *
  * #pragma once
@@ -58,6 +61,10 @@
  *
  * class GDPoint : public ECSType::ComponentType {
  *     GDCLASS(GDPoint, ECSType::ComponentType)
+ *
+ * public:
+ *     // Define the Signal struct when signal generation is not disabled.
+ *     GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, ECSType::ComponentType::Signal)
  *
  * private:
  *     godot::Vector2 m_pos{};
@@ -150,6 +157,8 @@ GD_ECS_COMPONENT_VARIANT_EXPORT(                                                
 //==================================================================================================
 
 /**
+ * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
+ *
  * using ECSType = godot::ECS;
  *
  * struct Marker {};
@@ -176,6 +185,9 @@ GD_ECS_COMPONENT_VARIANT_EXPORT(                                                
 )                                                                                                  \
 class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {                                \
     GDCLASS(GD_ECS_COMPONENT_NAME, GD_ECS_COMPONENT_PARENT_TYPE)                                   \
+                                                                                                   \
+public:                                                                                            \
+    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GD_ECS_COMPONENT_PARENT_TYPE::Signal)                       \
                                                                                                    \
 public:                                                                                            \
     virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override {        \
@@ -296,6 +308,8 @@ GD_ECS_EMPTY_COMPONENT_WITH_PARENT(                                             
 //==================================================================================================
 
 /**
+ * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
+ *
  * using ECSType = godot::ECS;
  *
  * struct Single {
@@ -329,6 +343,9 @@ GD_ECS_EMPTY_COMPONENT_WITH_PARENT(                                             
 )                                                                                                  \
 class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {                                \
     GDCLASS(GD_ECS_COMPONENT_NAME, GD_ECS_COMPONENT_PARENT_TYPE)                                   \
+                                                                                                   \
+public:                                                                                            \
+    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GD_ECS_COMPONENT_PARENT_TYPE::Signal)                       \
                                                                                                    \
 public:                                                                                            \
     VALUE_TYPE VALUE_NAME{__VA_ARGS__};                                                            \
@@ -403,6 +420,8 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
 //==================================================================================================
 
 /**
+ * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
+ *
  * using ECSType = godot::ECS;
  *
  * struct Multi {
@@ -440,6 +459,9 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
 )                                                                                                  \
 class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {                                \
     GDCLASS(GD_ECS_COMPONENT_NAME, GD_ECS_COMPONENT_PARENT_TYPE)                                   \
+                                                                                                   \
+public:                                                                                            \
+    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GD_ECS_COMPONENT_PARENT_TYPE::Signal)                       \
                                                                                                    \
 public:                                                                                            \
     FIELD_LIST(_HELPER_GD_ECS_COMPONENT_FIELD_DECLARE)                                             \

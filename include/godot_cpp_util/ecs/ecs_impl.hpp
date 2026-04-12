@@ -19,6 +19,9 @@
  *
  * For more information on how to use the ECS, refer to the other files in this directory.
  *
+ * Define GD_ECS_DO_NOT_GENERATE_SIGNAL_CODE before including this file to completely disable all
+ * generated signal code.
+ *
  * Usage example:
  *
  * #pragma once
@@ -110,6 +113,7 @@
 #include "godot_cpp/core/class_db.hpp"
 
 #include "component_macros.hpp"
+#include "signal_macros.hpp"
 
 
 
@@ -196,6 +200,10 @@
  * // registry.
  * class GDPoint : public ECSType::ComponentType {
  *     GDCLASS(GDPoint, ECSType::ComponentType)
+ *
+ * public:
+ *     // Define the Signal struct when signal generation is not disabled.
+ *     GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, ECSType::ComponentType::Signal)
  *
  * private:
  *     godot::Vector2 m_pos{};
@@ -322,6 +330,11 @@ class GD_ECS_COMPONENT_NAME : public godot::Resource {                          
                                                                                                    \
                                                                                                    \
 public:                                                                                            \
+    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GDTypedSignal::Resource)                                    \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+public:                                                                                            \
     virtual void emplace_or_replace(GD_ECS_ENTITY_NAME &p_entity);                                 \
                                                                                                    \
                                                                                                    \
@@ -335,6 +348,11 @@ protected:                                                                      
                                                                                                    \
 class GD_ECS_ENTITY_NAME : public godot::Node {                                                    \
     GDCLASS(GD_ECS_ENTITY_NAME, godot::Node)                                                       \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+public:                                                                                            \
+    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GDTypedSignal::Node)                                        \
                                                                                                    \
                                                                                                    \
                                                                                                    \
