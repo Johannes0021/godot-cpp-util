@@ -124,7 +124,7 @@ public:
      * @brief Constructor from a Variant.
      * @param p_variant Variant to extract the ObjectID from.
      */
-    TypedObjectID(Variant p_variant) {
+    TypedObjectID(const Variant &p_variant) {
         set(p_variant);
     }
 
