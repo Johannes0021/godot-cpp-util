@@ -30,16 +30,14 @@
  *     }
  *
  *     Variant get_animation_player() const {
- *         return m_anim_player.try_get();
+ *         return m_anim_player.try_get().ptr();
  *     }
  *
  *     virtual void _ready() override {
- *         if (AnimationPlayer *anim_player = m_anim_player.try_get()) {
- *             anim_player->play("run");
- *         }
- *         else {
- *             ERR_PRINT("No valid AnimationPlayer node has been set.");
- *         }
+ *         m_anim_player.try_get().match_inspect(
+ *             [](auto &anim_player) { anim_player.play("run"); },
+ *             []() { ERR_PRINT("No valid AnimationPlayer node has been set."); }
+ *         );
  *     }
  *
  * protected:
@@ -74,11 +72,9 @@
 
 
 
-#include <concepts>
-#include <cstdlib>
-#include <iostream>
-
 #include "godot_cpp/core/object.hpp"
+
+#include "godot_cpp_util/core/ptr.hpp"
 
 
 
@@ -158,36 +154,12 @@ public:
      * @brief Attempts to retrieve the referenced object.
      *
      * This function casts the object from ObjectDB to type T. If the object no longer exists or is
-     * of the wrong type, returns nullptr.
+     * of the wrong type, returns Ptr<T>{nullptr}.
      *
-     * @return Pointer to the object of type T or nullptr if unavailable.
+     * @return Ptr<T> to the object or Ptr<T>{nullptr} if unavailable.
      */
-    T* try_get() const {
-        return Object::cast_to<T>(ObjectDB::get_instance(m_id));
-    }
-
-
-
-    /**
-     * @brief Retrieves the referenced object or crashes if invalid.
-     *
-     * If the object does not exist or the cast fails, the program crashes with the provided
-     * message. This is useful for situations where a null reference is considered a critical error.
-     *
-     * @param p_msg Optional message to display on crash.
-     * @return Reference to the object of type T.
-     */
-    T& get_or_crash(const char *p_msg = "Attempted to access null object!") const {
-        T *obj = try_get();
-        if (!obj) {
-            CRASH_NOW_MSG(p_msg);
-
-            // Fallback crash, just to make this sure.
-            std::cerr << p_msg << "\n";
-            std::abort();
-        }
-
-        return *obj;
+    Ptr<T> try_get() const {
+        return Ptr{Object::cast_to<T>(ObjectDB::get_instance(m_id))};
     }
 
 };
