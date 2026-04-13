@@ -121,6 +121,16 @@ public:
 
 
     /**
+     * @brief Constructor from a Variant.
+     * @param p_variant Variant to extract the ObjectID from.
+     */
+    TypedObjectID(Variant p_variant) {
+        set(p_variant);
+    }
+
+
+
+    /**
      * @brief Sets the ObjectID.
      * @param p_id The new ObjectID to store.
      */
