@@ -19,7 +19,7 @@
 #include <cstdlib>
 #include <iostream>
 
-#include "godot_cpp/core/object.hpp"
+#include "godot_cpp/core/error_macros.hpp"
 
 
 
