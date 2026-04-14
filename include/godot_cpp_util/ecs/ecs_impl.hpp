@@ -6,12 +6,6 @@
  * This file provides the macro GD_ECS_IMPL which defines a customizable implementation required to
  * connect Godot data structures with an ECS backend implementation.
  *
- * GD_ECS_IMPL defines the core classes responsible for:
- * - Representing ECS entities inside Godot.
- * - Exposing ECS components as Godot resources.
- * - Translating editor-side data into ECS registry data.
- * - Managing the lifecycle of ECS entities through Godot nodes.
- *
  * The behavior of this system is highly configurable through the macro parameters.
  *
  * The design is intentionally kept as generic as possible in order to support multiple ECS
@@ -29,10 +23,10 @@
  * #include "entt/entity/registry.hpp"
  * #include "godot_cpp_util/ecs/ecs_impl.hpp"
  *
- * GD_ECS_IMPL(godot, ECS, Entity, Component, entt::registry)
+ * GD_ECS_IMPL(godot, ECS, C_Component, entt::registry)
  *
- * // Register types to Godot:
- * godot::ECS::register_types();
+ * //// Register types to Godot:
+ * //godot::ECS::register_types();
  *
  *
  *
@@ -51,6 +45,7 @@
  * #pragma once
  *
  * #include <cstdint>
+ * #include "godot_cpp_util/ecs/ecs_impl.hpp"
  *
  * class PlaceholderRegistry final {
  *     public:
@@ -82,6 +77,8 @@
  *             [[maybe_unused]] Args &&...args
  *         ) {}
  * };
+ *
+ * GD_ECS_IMPL(godot, ECS, C_Component, PlaceholderRegistry)
  *
  *
  *
@@ -116,6 +113,7 @@
 #include "godot_cpp/core/class_db.hpp"
 
 #include "component_macros.hpp"
+#include "entity_macros.hpp"
 #include "signal_macros.hpp"
 
 
@@ -127,9 +125,7 @@
 /**
  * This macro defines the following classes:
  *
- * -------------------------------------------------------------------------------------------------
- * GD_ECS_SINGLETON_NAME class
- * -------------------------------------------------------------------------------------------------
+ * --- GD_ECS_SINGLETON_NAME class ---
  *
  * Singleton instance that owns and manages the ECS registry.
  *
@@ -141,31 +137,7 @@
  *
  *
  *
- * -------------------------------------------------------------------------------------------------
- * GD_ECS_ENTITY_NAME class
- * -------------------------------------------------------------------------------------------------
- *
- * ECS entity node exposed to Godot.
- *
- * This node represents an ECS entity in the Godot scene tree.
- * When the node is constructed, a new entity is created in the ECS registry.
- * When the node is destroyed, the corresponding ECS entity is removed.
- * The lifetime of the ECS entity is therefore bound to the lifetime of this node.
- *
- * The node exposes an array of components in the Godot editor.
- * Components can be added to this array and configured visually.
- *
- * When the array is set, each component in the array is processed in sequence,
- * calling emplace_or_replace on each component to transfer its data into the ECS world.
- *
- * // Register types to Godot:
- * GD_ECS_NAMESPACE::GD_ECS_SINGLETON_NAME::register_types();
- *
- *
- *
- * -------------------------------------------------------------------------------------------------
- * GD_ECS_COMPONENT_NAME class
- * -------------------------------------------------------------------------------------------------
+ * --- GD_ECS_COMPONENT_NAME class ---
  *
  * Base class for all ECS components that are exposed to Godot.
  *
@@ -179,12 +151,12 @@
  *
  * Each derived component defines how its editor-facing data maps to ECS data.
  *
- * The Entity class exposes a property array of components. Components derived from this class can
+ * The Entity class exposes a property arrays of components. Components derived from this class can
  * be added to that array. When the property is set, the Entity iterates over the array and calls
  * emplace_or_replace on each component in sequence.
  *
  * For macros that are intended to make it easier to define a component class(GDCLASS) see
- * "macros_impl.hpp"
+ * "component_macros.hpp"
  *
  * Usage Example:
  *
@@ -201,8 +173,8 @@
  *
  * // Godot-facing component that exposes Point data to the editor and transfers it into the ECS
  * // registry.
- * class GDPoint : public ECSType::ComponentType {
- *     GDCLASS(GDPoint, ECSType::ComponentType)
+ * class C_Point : public ECSType::ComponentType {
+ *     GDCLASS(C_Point, ECSType::ComponentType)
  *
  * public:
  *     // Define the Signal struct when signal generation is not disabled.
@@ -212,25 +184,32 @@
  *     godot::Vector2 m_pos{};
  *
  * public:
+ *     static void register_types() {
+ *         GDREGISTER_RUNTIME_CLASS(C_Point);
+ *     }
+ *
  *     // Transfers the component data from the Godot resource into the ECS registry.
  *     //
  *     // Implementations are expected to emplace or replace the corresponding ECS component for the
  *     // given entity.
  *     //
  *     // The default implementation only adds a godot::Ref<ECSType::ComponentType> to the registry.
- *     virtual void emplace_or_replace(ECSType::EntityType &p_entity) override {
+ *     virtual void emplace_or_replace(
+ *         [[maybe_unused]] godot::Node &p_entity_node,
+ *         ECSType::RegistryType::entity_type &p_entity
+ *     ) override {
  *         // Derived implementations may call the base implementation to also apply base class
  *         // components.
- *         // ECSType::ComponentType::emplace_or_replace(p_entity);
+ *         //ECSType::ComponentType::emplace_or_replace(p_entity_node, p_entity);
  *
  *         auto &ecs = ECSType::get_instance();
  *         auto &reg = ecs.get_registry();
  *
- *         reg.emplace_or_replace<Point>(p_entity.get_entity(), m_pos);
+ *         reg.emplace_or_replace<Point>(p_entity, m_pos);
  *
  *         // Alternatively, the Godot component itself can be stored in the registry, for example
  *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<GDPoint>>(p_entity.get_entity(), this);
+ *         //reg.emplace_or_replace<godot::Ref<C_Point>>(p_entity, this);
  *     }
  *
  *     void set_pos(const godot::Vector2 pos) { m_pos = pos; }
@@ -238,8 +217,8 @@
  *
  * protected:
  *     static void _bind_methods() {
- *         godot::ClassDB::bind_method(godot::D_METHOD("set_pos", "p_pos"), &GDPoint ::set_pos);
- *         godot::ClassDB::bind_method(godot::D_METHOD("get_pos"), &GDPoint ::get_pos);
+ *         godot::ClassDB::bind_method(godot::D_METHOD("set_pos", "p_pos"), &C_Point ::set_pos);
+ *         godot::ClassDB::bind_method(godot::D_METHOD("get_pos"), &C_Point ::get_pos);
  *         ADD_PROPERTY(
  *             godot::PropertyInfo(godot::Variant::Type::VECTOR2, "pos"),
  *             "set_pos",
@@ -249,15 +228,23 @@
  *
  * };
  *
- * // Do not forget to expose the new component to Godot:
- * // ECSType::register_types();
- * // // ...
- * // GDREGISTER_RUNTIME_CLASS(GDPoint);
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Point::register_types();
+ *
+ *
+ *
+ * -------------------------------------------------------------------------------------------------
+ * Notes
+ * -------------------------------------------------------------------------------------------------
+ *
+ * See "entity_macros.hpp" for helpers to define entities.
+ * See "component_macros.hpp" for helpers to define components.
  */
 #define GD_ECS_IMPL(                                                                               \
     GD_ECS_NAMESPACE,                                                                              \
     GD_ECS_SINGLETON_NAME,                                                                         \
-    GD_ECS_ENTITY_NAME,                                                                            \
     GD_ECS_COMPONENT_NAME,                                                                         \
     GD_ECS_REGISTRY_TYPE,                                                                          \
     ...                                                                                            \
@@ -275,7 +262,6 @@ class GD_ECS_SINGLETON_NAME final {                                             
                                                                                                    \
 public:                                                                                            \
     using RegistryType = GD_ECS_REGISTRY_TYPE;                                                     \
-    using EntityType = GD_ECS_ENTITY_NAME;                                                         \
     using ComponentType = GD_ECS_COMPONENT_NAME;                                                   \
                                                                                                    \
                                                                                                    \
@@ -287,7 +273,6 @@ private:                                                                        
                                                                                                    \
 public:                                                                                            \
     static void register_types() {                                                                 \
-        GDREGISTER_RUNTIME_CLASS(GD_ECS_ENTITY_NAME);                                              \
         GDREGISTER_RUNTIME_CLASS(GD_ECS_COMPONENT_NAME);                                           \
     }                                                                                              \
                                                                                                    \
@@ -338,7 +323,14 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
 public:                                                                                            \
-    virtual void emplace_or_replace(GD_ECS_ENTITY_NAME &p_entity);                                 \
+    virtual void emplace_or_replace(                                                               \
+        [[maybe_unused]] godot::Node &p_entity_node,                                               \
+        GD_ECS_REGISTRY_TYPE::entity_type &p_entity                                                \
+    ) {                                                                                            \
+        auto &ecs = GD_ECS_SINGLETON_NAME::get_instance();                                         \
+        auto &reg = ecs.get_registry();                                                            \
+        reg.emplace_or_replace<godot::Ref<GD_ECS_COMPONENT_NAME>>(p_entity, this);                 \
+    }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
@@ -346,114 +338,6 @@ protected:                                                                      
     static void _bind_methods() {}                                                                 \
                                                                                                    \
 };                                                                                                 \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-class GD_ECS_ENTITY_NAME : public godot::Node {                                                    \
-    GDCLASS(GD_ECS_ENTITY_NAME, godot::Node)                                                       \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-public:                                                                                            \
-    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GDTypedSignal::Node)                                        \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-private:                                                                                           \
-    GD_ECS_REGISTRY_TYPE::entity_type m_entity{};                                                  \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-public:                                                                                            \
-    GD_ECS_ENTITY_NAME() {                                                                         \
-        auto &ecs = GD_ECS_SINGLETON_NAME::get_instance();                                         \
-        auto &reg = ecs.get_registry();                                                            \
-        m_entity = reg.create();                                                                   \
-    }                                                                                              \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-    virtual ~GD_ECS_ENTITY_NAME() override {                                                       \
-        auto &ecs = GD_ECS_SINGLETON_NAME::get_instance();                                         \
-        auto &reg = ecs.get_registry();                                                            \
-        if(reg.valid(m_entity)) {                                                                  \
-            reg.destroy(m_entity);                                                                 \
-        }                                                                                          \
-    }                                                                                              \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-    GD_ECS_REGISTRY_TYPE::entity_type& get_entity() {                                              \
-        return m_entity;                                                                           \
-    }                                                                                              \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-    const GD_ECS_REGISTRY_TYPE::entity_type& get_entity() const {                                  \
-        return m_entity;                                                                           \
-    }                                                                                              \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-    void emplace_or_replace(const godot::Ref<GD_ECS_COMPONENT_NAME> &p_component) {                \
-        if (p_component.is_valid()) {                                                              \
-            p_component->emplace_or_replace(*this);                                                \
-        }                                                                                          \
-    }                                                                                              \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-    void emplace_or_replace_many(const godot::Array &p_components) {                               \
-        for (auto &variant : p_components) {                                                       \
-            emplace_or_replace(variant);                                                           \
-        }                                                                                          \
-    }                                                                                              \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-protected:                                                                                         \
-    static void _bind_methods() {                                                                  \
-        godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD("emplace_or_replace", "p_component"),                                  \
-            &GD_ECS_ENTITY_NAME::emplace_or_replace                                                \
-        );                                                                                         \
-        godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD("emplace_or_replace_many", "p_components"),                            \
-            &GD_ECS_ENTITY_NAME::emplace_or_replace_many                                           \
-        );                                                                                         \
-        godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD("get_empty_typed_array"),                                              \
-            &GD_ECS_ENTITY_NAME::get_empty_typed_array                                             \
-        );                                                                                         \
-                                                                                                   \
-        ADD_PROPERTY(                                                                              \
-            godot::PropertyInfo(                                                                   \
-                godot::Variant::ARRAY,                                                             \
-                "emplace_or_replace_many",                                                         \
-                godot::PROPERTY_HINT_RESOURCE_TYPE,                                                \
-                GD_ECS_COMPONENT_NAME::get_class_static()                                          \
-            ),                                                                                     \
-            "emplace_or_replace_many",                                                             \
-            "get_empty_typed_array"                                                                \
-        );                                                                                         \
-    }                                                                                              \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-private:                                                                                           \
-    godot::Array get_empty_typed_array() {                                                         \
-        return godot::Array{};                                                                     \
-    }                                                                                              \
-                                                                                                   \
-};                                                                                                 \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-inline void GD_ECS_COMPONENT_NAME::emplace_or_replace(GD_ECS_ENTITY_NAME &p_entity) {              \
-    auto &ecs = GD_ECS_SINGLETON_NAME::get_instance();                                             \
-    auto &reg = ecs.get_registry();                                                                \
-    reg.emplace_or_replace<godot::Ref<GD_ECS_COMPONENT_NAME>>(p_entity.get_entity(), this);        \
-}                                                                                                  \
                                                                                                    \
                                                                                                    \
                                                                                                    \

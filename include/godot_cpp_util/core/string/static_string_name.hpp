@@ -1,6 +1,4 @@
 /**
- * Requires C++20 standard.
- *
  * Provides a shared Godot StringName that is lazily initialized on first access and can be used as
  * a static variable.
  */

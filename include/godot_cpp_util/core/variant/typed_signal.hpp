@@ -1,6 +1,4 @@
 /**
- * Requires C++20 standard.
- *
  * TypedSignal is a type-safe signal abstraction for Godot C++ that enforces correct callable
  * signatures and argument binding at compile time instead of runtime. Supports both binding
  * and unbinding of signal arguments with compile-time safety.

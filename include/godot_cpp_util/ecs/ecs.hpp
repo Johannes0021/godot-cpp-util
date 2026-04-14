@@ -7,12 +7,6 @@
  *
  * For more information on how to use the ECS, refer to the other files in this directory.
  *
- * Usage Example:
- *
- * #pragma once
- *
- * #include "godot_cpp_util/ecs/ecs.hpp"
- *
  * // Register types to Godot:
  * godot::ECS::register_types();
  */
@@ -44,4 +38,4 @@
 
 
 
-GD_ECS_IMPL(godot, ECS, Entity, Component, entt::registry)
+GD_ECS_IMPL(godot, ECS, C_Component, entt::registry)

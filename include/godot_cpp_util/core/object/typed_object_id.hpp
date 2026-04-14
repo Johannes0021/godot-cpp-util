@@ -1,6 +1,4 @@
 /**
- * Requires C++20 standard.
- *
  * TypedObjectID is a convenience wrapper for a Godot ObjectID.
  *
  * This template class stores a Godot ObjectID and provides helper functions to retrieve the object

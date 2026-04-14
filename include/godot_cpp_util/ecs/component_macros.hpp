@@ -13,12 +13,12 @@
  *
  * using ECSType = godot::ECS;
  * struct Marker {};
- * GD_ECS_EMPTY_COMPONENT(ECSType, GDMarker, Marker)
+ * GD_ECS_EMPTY_COMPONENT(ECSType, C_Marker, Marker)
  *
- * // Do not forget to expose the new component to Godot:
- * // ECSType::register_types();
- * // // ...
- * // GDREGISTER_RUNTIME_CLASS(GDMarker);
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Marker::register_types();
  *
  *
  *
@@ -59,8 +59,8 @@
  *     godot::Vector2 pos{};
  * };
  *
- * class GDPoint : public ECSType::ComponentType {
- *     GDCLASS(GDPoint, ECSType::ComponentType)
+ * class C_Point : public ECSType::ComponentType {
+ *     GDCLASS(C_Point, ECSType::ComponentType)
  *
  * public:
  *     // Define the Signal struct when signal generation is not disabled.
@@ -70,13 +70,17 @@
  *     godot::Vector2 m_pos{};
  *
  * public:
- *     virtual void emplace_or_replace(ECSType::EntityType &p_entity) override {
+ *     static void register_types() {
+ *         GDREGISTER_RUNTIME_CLASS(C_Point);
+ *     }
+ *
+ *     virtual void emplace_or_replace(
+ *         [[maybe_unused]] godot::Node &p_entity_node,
+ *         ECSType::RegistryType::entity_type &p_entity
+ *     ) override {
  *         auto &ecs = ECSType::get_instance();
  *         auto &reg = ecs.get_registry();
- *         reg.emplace_or_replace<Point>(p_entity.get_entity(), m_pos);
- *         // Alternatively, the Godot component itself can be stored in the registry, for example
- *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<GDPoint>>(p_entity.get_entity(), this);
+ *         reg.emplace_or_replace<Point>(p_entity, m_pos);
  *     }
  *
  *     void set_pos(const godot::Vector2 pos) { m_pos = pos; }
@@ -85,7 +89,7 @@
  * protected:
  *     static void _bind_methods() {
  *         GD_ECS_COMPONENT_VARIANT_EXPORT(
- *             GDPoint,
+ *             C_Point,
  *             godot::PropertyInfo(godot::Variant::Type::VECTOR2, "pos"),
  *             pos,
  *             set_pos,
@@ -94,6 +98,11 @@
  *     }
  *
  * };
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Point::register_types();
  */
 #define GD_ECS_COMPONENT_VARIANT_EXPORT(                                                           \
     GD_ECS_COMPONENT_NAME,                                                                         \
@@ -165,17 +174,22 @@ GD_ECS_COMPONENT_VARIANT_EXPORT(                                                
  *
  * GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(
  *     ECSType,
- *     GDMarker, ECSType::ComponentType,
- *     // virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override
+ *     C_Marker, ECSType::ComponentType,
+ *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
  *     {
  *         auto &ecs = ECSType::get_instance();
  *         auto &reg = ecs.get_registry();
- *         reg.emplace_or_replace<Marker>(p_entity.get_entity());
+ *         reg.emplace_or_replace<Marker>(p_entity);
  *         // Alternatively, the Godot component itself can be stored in the registry, for example
  *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<GDMarker>>(p_entity.get_entity(), this);
+ *         //reg.emplace_or_replace<godot::Ref<C_Marker>>(p_entity, this);
  *     }
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Marker::register_types();
  */
 #define GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                     \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -190,7 +204,14 @@ public:                                                                         
     GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GD_ECS_COMPONENT_PARENT_TYPE::Signal)                       \
                                                                                                    \
 public:                                                                                            \
-    virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override {        \
+    static void register_types() {                                                                 \
+        GDREGISTER_RUNTIME_CLASS(GD_ECS_COMPONENT_NAME);                                           \
+    }                                                                                              \
+                                                                                                   \
+    virtual void emplace_or_replace(                                                               \
+        [[maybe_unused]] godot::Node &p_entity_node,                                               \
+        [[maybe_unused]] GD_ECS_SINGLETON_TYPE::RegistryType::entity_type &p_entity                \
+    ) override {                                                                                   \
         EMPLACE_OR_REPLACE_BODY                                                                    \
     }                                                                                              \
                                                                                                    \
@@ -212,17 +233,22 @@ protected:                                                                      
  *
  * GD_ECS_EMPTY_COMPONENT_EMPLACE_OR_REPLACE(
  *     ECSType,
- *     GDMarker,
- *     // virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override
+ *     C_Marker,
+ *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
  *     {
  *         auto &ecs = ECSType::get_instance();
  *         auto &reg = ecs.get_registry();
- *         reg.emplace_or_replace<Marker>(p_entity.get_entity());
+ *         reg.emplace_or_replace<Marker>(p_entity);
  *         // Alternatively, the Godot component itself can be stored in the registry, for example
  *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<GDMarker>>(p_entity.get_entity(), this);
+ *         //reg.emplace_or_replace<godot::Ref<C_Marker>>(p_entity, this);
  *     }
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Marker::register_types();
  */
 #define GD_ECS_EMPTY_COMPONENT_EMPLACE_OR_REPLACE(                                                 \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -251,12 +277,14 @@ GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                          
  *
  * GD_ECS_EMPTY_COMPONENT_WITH_PARENT(
  *     ECSType,
- *     GDMarker, ECSType::ComponentType,
- *     Marker
- *     // Alternatively, the Godot component itself can be stored in the registry, for example
- *     // wrapped in godot::Ref.
- *     //godot::Ref<GDMarker>
+ *     C_Marker, ECSType::ComponentType,
+ *     Marker // Do not use godot::Ref<C_Marker> here.
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Marker::register_types();
  */
 #define GD_ECS_EMPTY_COMPONENT_WITH_PARENT(                                                        \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -271,7 +299,7 @@ GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                          
     {                                                                                              \
         auto &ecs = GD_ECS_SINGLETON_TYPE::get_instance();                                         \
         auto &reg = ecs.get_registry();                                                            \
-        reg.emplace_or_replace<ECS_COMPONENT_NAME>(p_entity.get_entity());                         \
+        reg.emplace_or_replace<ECS_COMPONENT_NAME>(p_entity);                                      \
     }                                                                                              \
 )
 
@@ -288,12 +316,14 @@ GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                          
  *
  * GD_ECS_EMPTY_COMPONENT(
  *     ECSType,
- *     GDMarker,
- *     Marker
- *     // Alternatively, the Godot component itself can be stored in the registry, for example
- *     // wrapped in godot::Ref.
- *     //godot::Ref<GDMarker>
+ *     C_Marker,
+ *     Marker // Do not use godot::Ref<C_Marker> here.
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Marker::register_types();
  */
 #define GD_ECS_EMPTY_COMPONENT(GD_ECS_SINGLETON_TYPE, GD_ECS_COMPONENT_NAME, ECS_COMPONENT_NAME)   \
 GD_ECS_EMPTY_COMPONENT_WITH_PARENT(                                                                \
@@ -320,18 +350,23 @@ GD_ECS_EMPTY_COMPONENT_WITH_PARENT(                                             
  *
  * GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(
  *     ECSType,
- *     GDSingle, ECSType::ComponentType,
- *     // virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override
+ *     C_Single, ECSType::ComponentType,
+ *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
  *     {
  *         auto &ecs = ECSType::get_instance();
  *         auto &reg = ecs.get_registry();
- *         reg.emplace_or_replace<Single>(p_entity.get_entity(), x);
+ *         reg.emplace_or_replace<Single>(p_entity, x);
  *         // Alternatively, the Godot component itself can be stored in the registry, for example
  *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<GDSingle>>(p_entity.get_entity(), this);
+ *         //reg.emplace_or_replace<godot::Ref<C_Single>>(p_entity, this);
  *     },
  *     godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x //, true // Optional value.
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Single::register_types();
  */
 #define GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                           \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -353,7 +388,14 @@ public:                                                                         
     VALUE_TYPE VALUE_NAME{__VA_ARGS__};                                                            \
                                                                                                    \
 public:                                                                                            \
-    virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override {        \
+    static void register_types() {                                                                 \
+        GDREGISTER_RUNTIME_CLASS(GD_ECS_COMPONENT_NAME);                                           \
+    }                                                                                              \
+                                                                                                   \
+    virtual void emplace_or_replace(                                                               \
+        [[maybe_unused]] godot::Node &p_entity_node,                                               \
+        [[maybe_unused]] GD_ECS_SINGLETON_TYPE::RegistryType::entity_type &p_entity                \
+    ) override {                                                                                   \
         EMPLACE_OR_REPLACE_BODY                                                                    \
     }                                                                                              \
                                                                                                    \
@@ -382,18 +424,23 @@ protected:                                                                      
  *
  * GD_ECS_COMPONENT_EMPLACE_OR_REPLACE(
  *     ECSType,
- *     GDSingle,
- *     // virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override
+ *     C_Single,
+ *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
  *     {
  *         auto &ecs = ECSType::get_instance();
  *         auto &reg = ecs.get_registry();
- *         reg.emplace_or_replace<Single>(p_entity.get_entity(), x);
+ *         reg.emplace_or_replace<Single>(p_entity, x);
  *         // Alternatively, the Godot component itself can be stored in the registry, for example
  *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<GDSingle>>(p_entity.get_entity(), this);
+ *         //reg.emplace_or_replace<godot::Ref<C_Single>>(p_entity, this);
  *     },
  *     godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x //, true // Optional value.
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Single::register_types();
  */
 #define GD_ECS_COMPONENT_EMPLACE_OR_REPLACE(                                                       \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -432,25 +479,30 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
  *     bool x{};
  * };
  *
- * #define GDMULTI_FIELDS(X)                                                                       \
+ * #define C_Multi_FIELDS(X)                                                                       \
  * X(godot::PropertyInfo(godot::Variant::Type::STRING_NAME, "name"), godot::StringName, name)      \
  * X(godot::PropertyInfo(godot::Variant::Type::VECTOR2, "point"), godot::Vector2, point)           \
  * X(godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x, true) // Optional value.
  *
  * GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(
  *     ECSType,
- *     GDMulti, ECSType::ComponentType,
- *     // virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override
+ *     C_Multi, ECSType::ComponentType,
+ *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
  *     {
  *         auto &ecs = ECSType::get_instance();
  *         auto &reg = ecs.get_registry();
- *         reg.emplace_or_replace<Multi>(p_entity.get_entity(), name, point);
+ *         reg.emplace_or_replace<Multi>(p_entity, name, point);
  *         // Alternatively, the Godot component itself can be stored in the registry, for example
  *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<GDMulti>>(p_entity.get_entity(), this);
+ *         //reg.emplace_or_replace<godot::Ref<C_Multi>>(p_entity, this);
  *     },
- *     GDMULTI_FIELDS
+ *     C_Multi_FIELDS
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Multi::register_types();
  */
 #define GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(                                     \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -469,7 +521,14 @@ public:                                                                         
     FIELD_LIST(_HELPER_GD_ECS_COMPONENT_FIELD_DECLARE)                                             \
                                                                                                    \
 public:                                                                                            \
-    virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override {        \
+    static void register_types() {                                                                 \
+        GDREGISTER_RUNTIME_CLASS(GD_ECS_COMPONENT_NAME);                                           \
+    }                                                                                              \
+                                                                                                   \
+    virtual void emplace_or_replace(                                                               \
+        [[maybe_unused]] godot::Node &p_entity_node,                                               \
+        [[maybe_unused]] GD_ECS_SINGLETON_TYPE::RegistryType::entity_type &p_entity                \
+    ) override {                                                                                   \
         EMPLACE_OR_REPLACE_BODY                                                                    \
     }                                                                                              \
                                                                                                    \
@@ -497,25 +556,30 @@ protected:                                                                      
  *     bool x{};
  * };
  *
- * #define GDMULTI_FIELDS(X)                                                                       \
+ * #define C_Multi_FIELDS(X)                                                                       \
  * X(godot::PropertyInfo(godot::Variant::Type::STRING_NAME, "name"), godot::StringName, name)      \
  * X(godot::PropertyInfo(godot::Variant::Type::VECTOR2, "point"), godot::Vector2, point)           \
  * X(godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x, true) // Optional value.
  *
  * GD_ECS_COMPONENT_MULTI_EMPLACE_OR_REPLACE(
  *     ECSType,
- *     GDMulti,
- *     // virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override
+ *     C_Multi,
+ *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
  *     {
  *         auto &ecs = ECSType::get_instance();
  *         auto &reg = ecs.get_registry();
- *         reg.emplace_or_replace<Multi>(p_entity.get_entity(), name, point);
+ *         reg.emplace_or_replace<Multi>(p_entity, name, point);
  *         // Alternatively, the Godot component itself can be stored in the registry, for example
  *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<GDMulti>>(p_entity.get_entity(), this);
+ *         //reg.emplace_or_replace<godot::Ref<C_Multi>>(p_entity, this);
  *     },
- *     GDMULTI_FIELDS
+ *     C_Multi_FIELDS
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Multi::register_types();
  */
 #define GD_ECS_COMPONENT_MULTI_EMPLACE_OR_REPLACE(                                                 \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -548,14 +612,15 @@ GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(                          
  *
  * GD_ECS_COMPONENT_WITH_PARENT(
  *     ECSType,
- *     GDSingle, ECSType::ComponentType,
- *     Single,
- *     // Alternatively, the Godot component itself can be stored in the registry, for example
- *     // wrapped in godot::Ref.
- *     //godot::Ref<GDSingle>,
- *     // virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override
+ *     C_Single, ECSType::ComponentType,
+ *     Single, // Do not use godot::Ref<C_Single> here.
  *     godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x //, true // Optional value.
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Single::register_types();
  */
 #define GD_ECS_COMPONENT_WITH_PARENT(                                                              \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -574,10 +639,7 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
     {                                                                                              \
         auto &ecs = GD_ECS_SINGLETON_TYPE::get_instance();                                         \
         auto &reg = ecs.get_registry();                                                            \
-        reg.emplace_or_replace<ECS_COMPONENT_NAME>(                                                \
-            p_entity.get_entity(),                                                                 \
-            ECS_COMPONENT_NAME{VALUE_NAME}                                                         \
-        );                                                                                         \
+        reg.emplace_or_replace<ECS_COMPONENT_NAME>(p_entity, ECS_COMPONENT_NAME{VALUE_NAME});      \
     },                                                                                             \
     GD_PROPERTY_INFO,                                                                              \
     VALUE_TYPE,                                                                                    \
@@ -600,14 +662,15 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
  *
  * GD_ECS_COMPONENT(
  *     ECSType,
- *     GDSingle,
- *     Single,
- *     // Alternatively, the Godot component itself can be stored in the registry, for example
- *     // wrapped in godot::Ref.
- *     //godot::Ref<GDSingle>,
- *     // virtual void emplace_or_replace(GD_ECS_SINGLETON_TYPE::EntityType &p_entity) override
+ *     C_Single,
+ *     Single, // Do not use godot::Ref<C_Single> here.
  *     godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x //, true // Optional value.
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Single::register_types();
  */
 #define GD_ECS_COMPONENT(                                                                          \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -646,20 +709,22 @@ GD_ECS_COMPONENT_WITH_PARENT(                                                   
  *     bool x{};
  * };
  *
- * #define GDMULTI_FIELDS(X)                                                                       \
+ * #define C_Multi_FIELDS(X)                                                                       \
  * X(godot::PropertyInfo(godot::Variant::Type::STRING_NAME, "name"), godot::StringName, name)      \
  * X(godot::PropertyInfo(godot::Variant::Type::VECTOR2, "point"), godot::Vector2, point)           \
  * X(godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x, true) // Optional value.
  *
  * GD_ECS_COMPONENT_MULTI_WITH_PARENT(
  *     ECSType,
- *     GDMulti, ECSType::ComponentType,
- *     Multi,
- *     // Alternatively, the Godot component itself can be stored in the registry, for example
- *     // wrapped in godot::Ref.
- *     //godot::Ref<GDMulti>,
- *     GDMULTI_FIELDS
+ *     C_Multi, ECSType::ComponentType,
+ *     Multi, // Do not use godot::Ref<C_Multi> here.
+ *     C_Multi_FIELDS
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Multi::register_types();
  */
 #define GD_ECS_COMPONENT_MULTI_WITH_PARENT(                                                        \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -676,7 +741,7 @@ GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(                          
         auto &ecs = GD_ECS_SINGLETON_TYPE::get_instance();                                         \
         auto &reg = ecs.get_registry();                                                            \
         reg.emplace_or_replace<ECS_COMPONENT_NAME>(                                                \
-            p_entity.get_entity(),                                                                 \
+            p_entity,                                                                              \
             ECS_COMPONENT_NAME{FIELD_LIST(_HELPER_GD_ECS_COMPONENT_EXTRACT_VALUE_NAME_COMMA)}      \
         );                                                                                         \
     },                                                                                             \
@@ -698,20 +763,22 @@ GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(                          
  *     bool x{};
  * };
  *
- * #define GDMULTI_FIELDS(X)                                                                       \
+ * #define C_Multi_FIELDS(X)                                                                       \
  * X(godot::PropertyInfo(godot::Variant::Type::STRING_NAME, "name"), godot::StringName, name)      \
  * X(godot::PropertyInfo(godot::Variant::Type::VECTOR2, "point"), godot::Vector2, point)           \
  * X(godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x, true) // Optional value.
  *
  * GD_ECS_COMPONENT_MULTI(
  *     ECSType,
- *     GDMulti,
- *     Multi,
- *     // Alternatively, the Godot component itself can be stored in the registry, for example
- *     // wrapped in godot::Ref.
- *     //godot::Ref<GDMulti>,
- *     GDMULTI_FIELDS
+ *     C_Multi,
+ *     Multi, // Do not use godot::Ref<C_Multi> here.
+ *     C_Multi_FIELDS
  * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Multi::register_types();
  */
 #define GD_ECS_COMPONENT_MULTI(                                                                    \
     GD_ECS_SINGLETON_TYPE,                                                                         \
