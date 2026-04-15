@@ -202,8 +202,7 @@
  *         // components.
  *         //ECSType::ComponentType::emplace_or_replace(p_entity_node, p_entity);
  *
- *         auto &ecs = ECSType::get_instance();
- *         auto &reg = ecs.get_registry();
+ *         auto &reg = ECSType::get_registry();
  *
  *         reg.emplace_or_replace<Point>(p_entity, m_pos);
  *
@@ -286,14 +285,8 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    GD_ECS_REGISTRY_TYPE& get_registry() {                                                         \
-        return m_registry;                                                                         \
-    }                                                                                              \
-                                                                                                   \
-                                                                                                   \
-                                                                                                   \
-    const GD_ECS_REGISTRY_TYPE& get_registry() const {                                             \
-        return m_registry;                                                                         \
+    static GD_ECS_REGISTRY_TYPE& get_registry() {                                                  \
+        return get_instance().m_registry;                                                          \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
@@ -327,8 +320,7 @@ public:                                                                         
         [[maybe_unused]] godot::Node &p_entity_node,                                               \
         GD_ECS_REGISTRY_TYPE::entity_type &p_entity                                                \
     ) {                                                                                            \
-        auto &ecs = GD_ECS_SINGLETON_NAME::get_instance();                                         \
-        auto &reg = ecs.get_registry();                                                            \
+        auto &reg = GD_ECS_SINGLETON_NAME::get_registry();                                         \
         reg.emplace_or_replace<godot::Ref<GD_ECS_COMPONENT_NAME>>(p_entity, this);                 \
     }                                                                                              \
                                                                                                    \

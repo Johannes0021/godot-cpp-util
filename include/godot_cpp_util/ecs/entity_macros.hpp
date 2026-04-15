@@ -123,16 +123,14 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
     GD_ECS_ENTITY_NAME() {                                                                         \
-        auto &ecs = GD_ECS_SINGLETON_NAME::get_instance();                                         \
-        auto &reg = ecs.get_registry();                                                            \
+        auto &reg = GD_ECS_SINGLETON_NAME::get_registry();                                         \
         m_entity = reg.create();                                                                   \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
     virtual ~GD_ECS_ENTITY_NAME() override {                                                       \
-        auto &ecs = GD_ECS_SINGLETON_NAME::get_instance();                                         \
-        auto &reg = ecs.get_registry();                                                            \
+        auto &reg = GD_ECS_SINGLETON_NAME::get_registry();                                         \
         if(reg.valid(m_entity)) {                                                                  \
             reg.destroy(m_entity);                                                                 \
         }                                                                                          \
