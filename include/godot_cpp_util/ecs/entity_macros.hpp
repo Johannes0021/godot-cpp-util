@@ -82,12 +82,12 @@ inline constexpr bool has_gd_ecs_entity_tag_v = has_gd_ecs_entity_tag<T>::value;
  * #include "godot_cpp_util/ecs/ecs.hpp"
  *
  * using ECSType = godot::ECS;
- * GD_ECS_ENTITY(ECSType, E_Entity, godot::Node)
+ * GD_ECS_ENTITY(ECSType, E_Node, godot::Node)
  *
  * //// Do not forget to expose the new entity to Godot:
  * //ECSType::register_types();
  * //// ...
- * //E_Entity::register_types();
+ * //E_Node::register_types();
  */
 #define GD_ECS_ENTITY(GD_ECS_SINGLETON_NAME, GD_ECS_ENTITY_NAME, GD_ECS_ENTITY_PARENT_TYPE)        \
 class GD_ECS_ENTITY_NAME : public GD_ECS_ENTITY_PARENT_TYPE {                                      \
