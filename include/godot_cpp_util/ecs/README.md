@@ -42,7 +42,10 @@ struct Data {
     // It defines how fields are interpreted, serialized, and edited.
     static const auto& descriptor() {
         static const auto descriptor = C_Descriptor{
-            //"ComponentName", // Defaults to "Data" if not explicitly specified.
+            // "ComponentName", // Defaults to an empty string if not explicitly specified.
+            // When registered via a resource, this name is used directly. If it is empty, the name
+            // is taken from GD_ECS_COMPONENT, for example GD_ECS_COMPONENT(ECS, C_Data, Data)
+            // assigns the name "Data".
 
             // Field with explicit PropertyInfo and setter and getter.
             C_Field{&Data::id, PropertyInfo(Variant::INT, "id"), "set_id", "get_id"},
@@ -86,8 +89,11 @@ struct Empty {
     // Default constructor is required by the ECS.
     Empty() = default;
 
-    // Generates an empty descriptor.
-    // The component name defaults to "Empty".
+    // Generates an empty component descriptor.
+    // The component name defaults to an empty string unless explicitly specified.
+    // When registered via a resource, this name is used directly. If it is empty, the name is taken
+    // from GD_ECS_COMPONENT, for example GD_ECS_COMPONENT(ECS, C_Empty, Empty) assigns the name
+    // "Empty".
     GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty)
 
     // Alternative with a custom component name.
@@ -140,8 +146,8 @@ inline void register_types() {
     // visibility and editability in debug environments.
     //
     // Using '+', '-', and '+-' commands, multiple components can be added or removed at once.
-    // This also works at runtime, allowing entities to be modified dynamically in the editor while
-    // the game is running.
+    // This functionality is specifically intended for the remote runtime view in the editor,
+    // allowing entities to be modified live while the game is running (debug build only).
     // Note: In Godot 4.6.x, Dictionary add and remove operations are currently broken in the remote
     // view (see issue: https://github.com/godotengine/godot/issues/116748).
 }
