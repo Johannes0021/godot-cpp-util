@@ -48,74 +48,16 @@
 
 
 
-//==================================================================================================
-// GD_ECS_COMPONENT_VARIANT_EXPORT
-//==================================================================================================
+#include <concepts>
+#include <cstddef>
+#include <tuple>
+#include <utility>
 
-/**
- * using ECSType = godot::ECS;
- *
- * struct Point {
- *     godot::Vector2 pos{};
- * };
- *
- * class C_Point : public ECSType::ComponentType {
- *     GDCLASS(C_Point, ECSType::ComponentType)
- *
- * public:
- *     // Define the Signal struct when signal generation is not disabled.
- *     GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, ECSType::ComponentType::Signal)
- *
- * private:
- *     godot::Vector2 m_pos{};
- *
- * public:
- *     static void register_types() {
- *         GDREGISTER_RUNTIME_CLASS(C_Point);
- *     }
- *
- *     virtual void emplace_or_replace(
- *         [[maybe_unused]] godot::Node &p_entity_node,
- *         ECSType::RegistryType::entity_type &p_entity
- *     ) override {
- *         auto &reg = ECSType::get_registry();
- *         reg.emplace_or_replace<Point>(p_entity, m_pos);
- *     }
- *
- *     void set_pos(const godot::Vector2 pos) { m_pos = pos; }
- *     godot::Vector2 get_pos() const { return m_pos; }
- *
- * protected:
- *     static void _bind_methods() {
- *         GD_ECS_COMPONENT_VARIANT_EXPORT(
- *             C_Point,
- *             godot::PropertyInfo(godot::Variant::Type::VECTOR2, "pos"),
- *             pos,
- *             set_pos,
- *             get_pos
- *         );
- *     }
- *
- * };
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Point::register_types();
- */
-#define GD_ECS_COMPONENT_VARIANT_EXPORT(                                                           \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_PROPERTY_INFO,                                                                              \
-    VALUE_NAME,                                                                                    \
-    SET_FN,                                                                                        \
-    GET_FN                                                                                         \
-)                                                                                                  \
-godot::ClassDB::bind_method(                                                                       \
-    godot::D_METHOD(#SET_FN, "p_" #VALUE_NAME),                                                    \
-    &GD_ECS_COMPONENT_NAME::SET_FN                                                                 \
-);                                                                                                 \
-godot::ClassDB::bind_method(godot::D_METHOD(#GET_FN), &GD_ECS_COMPONENT_NAME::GET_FN);             \
-ADD_PROPERTY(GD_PROPERTY_INFO, #SET_FN, #GET_FN);
+#include "godot_cpp/core/property_info.hpp"
+#include "godot_cpp/variant/dictionary.hpp"
+#include "godot_cpp/variant/string.hpp"
+#include "godot_cpp/variant/string_name.hpp"
+#include "godot_cpp/variant/variant.hpp"
 
 
 
@@ -123,211 +65,179 @@ ADD_PROPERTY(GD_PROPERTY_INFO, #SET_FN, #GET_FN);
 // Helpers
 //==================================================================================================
 
-#define _HELPER_GD_ECS_COMPONENT_FIELD_DECLARE(GD_PROPERTY_INFO, VALUE_TYPE, VALUE_NAME, ...)      \
-VALUE_TYPE VALUE_NAME{__VA_ARGS__};
+namespace godot {
 
+struct C_Field {
+    godot::PropertyInfo property_info{};
+    godot::StringName set_fn{};
+    godot::StringName get_fn{};
 
-
-#define _HELPER_GD_ECS_COMPONENT_EXTRACT_VALUE_NAME_COMMA(                                         \
-    GD_PROPERTY_INFO,                                                                              \
-    VALUE_TYPE,                                                                                    \
-    VALUE_NAME,                                                                                    \
-    ...                                                                                            \
-)                                                                                                  \
-VALUE_NAME,
-
-
-
-#define _HELPER_GD_ECS_COMPONENT_FIELD_SET_GET(GD_PROPERTY_INFO, VALUE_TYPE, VALUE_NAME, ...)      \
-void set_##VALUE_NAME(const VALUE_TYPE &p_##VALUE_NAME) {                                          \
-    VALUE_NAME = p_##VALUE_NAME;                                                                   \
-}                                                                                                  \
-                                                                                                   \
-VALUE_TYPE get_##VALUE_NAME() const {                                                              \
-    return VALUE_NAME;                                                                             \
-}
-
-
-
-#define _HELPER_GD_ECS_COMPONENT_FIELD_BIND(GD_PROPERTY_INFO, VALUE_TYPE, VALUE_NAME, ...)         \
-GD_ECS_COMPONENT_VARIANT_EXPORT(                                                                   \
-    _HELPER_GD_ECS_COMPONENT_FIELD_BIND_GDComponentName,                                           \
-    GD_PROPERTY_INFO,                                                                              \
-    VALUE_NAME,                                                                                    \
-    set_##VALUE_NAME,                                                                              \
-    get_##VALUE_NAME                                                                               \
-)
-
-
-
-//==================================================================================================
-// GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE
-//==================================================================================================
-
-/**
- * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
- *
- * using ECSType = godot::ECS;
- *
- * struct Marker {};
- *
- * GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(
- *     ECSType,
- *     C_Marker, ECSType::ComponentType,
- *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
- *     {
- *         auto &reg = ECSType::get_registry();
- *         reg.emplace_or_replace<Marker>(p_entity);
- *         // Alternatively, the Godot component itself can be stored in the registry, for example
- *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<C_Marker>>(p_entity, this);
- *     }
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Marker::register_types();
- */
-#define GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                     \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
-    EMPLACE_OR_REPLACE_BODY                                                                        \
-)                                                                                                  \
-class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {                                \
-    GDCLASS(GD_ECS_COMPONENT_NAME, GD_ECS_COMPONENT_PARENT_TYPE)                                   \
-                                                                                                   \
-public:                                                                                            \
-    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GD_ECS_COMPONENT_PARENT_TYPE::Signal)                       \
-                                                                                                   \
-public:                                                                                            \
-    static void register_types() {                                                                 \
-        GDREGISTER_RUNTIME_CLASS(GD_ECS_COMPONENT_NAME);                                           \
-    }                                                                                              \
-                                                                                                   \
-    virtual void emplace_or_replace(                                                               \
-        [[maybe_unused]] godot::Node &p_entity_node,                                               \
-        [[maybe_unused]] GD_ECS_SINGLETON_TYPE::RegistryType::entity_type &p_entity                \
-    ) override {                                                                                   \
-        EMPLACE_OR_REPLACE_BODY                                                                    \
-    }                                                                                              \
-                                                                                                   \
-protected:                                                                                         \
-    static void _bind_methods() {}                                                                 \
-                                                                                                   \
+    static C_Field field(godot::Variant::Type p_type, godot::StringName p_name) {
+        return {
+            godot::PropertyInfo(p_type, p_name),
+            godot::String{"set_"} + p_name,
+            godot::String{"get_"} + p_name,
+        };
+    }
 };
 
 
 
+template <typename... Ts>
+struct C_Descriptor {
+    using TupleType = std::tuple<Ts...>;
+
+    static constexpr std::size_t FieldCount = sizeof...(Ts);
+
+    std::array<C_Field, FieldCount> fields{};
+    TupleType defaults{};
+};
+
+
+
+template <typename T>
+concept gd_ecs_has_component_descriptor =
+requires(T t) {
+    typename T::Descriptor;
+    { T::descriptor() } -> std::same_as<const typename T::Descriptor&>;
+    { T::from_tuple(std::declval<const typename T::Descriptor::TupleType&>()) } -> std::same_as<T>;
+    { t.to_tuple() } -> std::same_as<typename T::Descriptor::TupleType>;
+}
+&& requires { typename std::tuple_size<typename T::Descriptor::TupleType>; };
+
+
+
+template <typename TupleType, typename DescriptorType, std::size_t... I>
+godot::Dictionary gd_ecs_tuple_to_dict_impl(
+    const TupleType &p_tuple,
+    const DescriptorType &p_descriptor,
+    std::index_sequence<I...>
+) {
+    godot::Dictionary dictionary{};
+
+    [[maybe_unused]] auto result = std::initializer_list<int>{
+        (dictionary[p_descriptor.fields[I].property_info.name] =
+            godot::Variant{std::get<I>(p_tuple)}, 0)...
+    };
+
+    return dictionary;
+}
+
+
+
+template <typename... Ts>
+godot::Variant gd_ecs_tuple_to_variant(
+    const std::tuple<Ts...> &p_tuple,
+    const C_Descriptor<Ts...> &p_descriptor
+) {
+    if constexpr (sizeof...(Ts) == 0) {
+        return godot::Variant{};
+    }
+    else if constexpr (sizeof...(Ts) == 1) {
+        return godot::Variant{std::get<0>(p_tuple)};
+    }
+    else {
+        return gd_ecs_tuple_to_dict_impl(p_tuple, p_descriptor, std::index_sequence_for<Ts...>{});
+    }
+}
+
+
+
+template <typename T>
+T gd_ecs_variant_cast(const godot::Variant &p_variant) {
+    return p_variant.operator T();
+}
+
+
+
+template <typename TupleType, typename DescriptorType, std::size_t... I>
+TupleType gd_ecs_dict_to_tuple_impl(
+    const godot::Dictionary &p_dictionary,
+    const DescriptorType &p_descriptor,
+    std::index_sequence<I...>
+) {
+    return TupleType{
+        gd_ecs_variant_cast<std::tuple_element_t<I, TupleType>>(
+            p_dictionary.has(p_descriptor.fields[I].property_info.name)
+                ? p_dictionary[p_descriptor.fields[I].property_info.name]
+                : godot::Variant{}
+        )...
+    };
+}
+
+
+
+template <typename... Ts>
+std::tuple<Ts...> gd_ecs_variant_to_tuple(
+    const godot::Variant &p_variant,
+    const C_Descriptor<Ts...> &p_descriptor
+) {
+    using TupleType = std::tuple<Ts...>;
+
+    if constexpr (sizeof...(Ts) == 0) {
+        return {};
+    }
+    else if constexpr (sizeof...(Ts) == 1) {
+        return TupleType{p_variant.operator Ts()...};
+    }
+    else {
+        const godot::Dictionary dictionary = p_variant;
+        return gd_ecs_dict_to_tuple_impl<TupleType>(
+            dictionary,
+            p_descriptor,
+            std::index_sequence_for<Ts...>{}
+        );
+    }
+}
+
+
+
+template <typename T, typename RegistryType, typename EntityType, typename TupleType>
+requires std::is_empty_v<T>
+void gd_ecs_emplace_or_replace_tuple(
+    RegistryType &p_registry,
+    const EntityType &p_entity,
+    const TupleType&
+) {
+    p_registry.template emplace_or_replace<T>(p_entity);
+}
+
+
+
+template <typename T, typename RegistryType, typename EntityType, typename TupleType>
+requires (!std::is_empty_v<T>)
+         && gd_ecs_has_component_descriptor<T>
+void gd_ecs_emplace_or_replace_tuple(
+    RegistryType &p_registry,
+    const EntityType &p_entity,
+    const TupleType &p_data
+) {
+    p_registry.template emplace_or_replace<T>(p_entity, T::from_tuple(p_data));
+}
+
+} // namespace godot
+
+
+
 //==================================================================================================
-// GD_ECS_EMPTY_COMPONENT_EMPLACE_OR_REPLACE
+// GD_ECS_EMPTY_COMPONENT_DESCRIPTOR
 //==================================================================================================
 
-/**
- * using ECSType = godot::ECS;
- *
- * struct Marker {};
- *
- * GD_ECS_EMPTY_COMPONENT_EMPLACE_OR_REPLACE(
- *     ECSType,
- *     C_Marker,
- *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
- *     {
- *         auto &reg = ECSType::get_registry();
- *         reg.emplace_or_replace<Marker>(p_entity);
- *         // Alternatively, the Godot component itself can be stored in the registry, for example
- *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<C_Marker>>(p_entity, this);
- *     }
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Marker::register_types();
- */
-#define GD_ECS_EMPTY_COMPONENT_EMPLACE_OR_REPLACE(                                                 \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    EMPLACE_OR_REPLACE_BODY                                                                        \
-)                                                                                                  \
-GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                             \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
-    EMPLACE_OR_REPLACE_BODY                                                                        \
-)
-
-
-
-//==================================================================================================
-// GD_ECS_EMPTY_COMPONENT_WITH_PARENT
-//==================================================================================================
-
-/**
- * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
- *
- * using ECSType = godot::ECS;
- *
- * struct Marker {};
- *
- * GD_ECS_EMPTY_COMPONENT_WITH_PARENT(
- *     ECSType,
- *     C_Marker, ECSType::ComponentType,
- *     Marker // Do not use godot::Ref<C_Marker> here.
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Marker::register_types();
- */
-#define GD_ECS_EMPTY_COMPONENT_WITH_PARENT(                                                        \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
-    ECS_COMPONENT_NAME                                                                             \
-)                                                                                                  \
-GD_ECS_EMPTY_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                             \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
-    {                                                                                              \
-        auto &reg = GD_ECS_SINGLETON_TYPE::get_registry();                                         \
-        reg.emplace_or_replace<ECS_COMPONENT_NAME>(p_entity);                                      \
+#define GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(ECS_COMPONENT_NAME)                                      \
+    using Descriptor = godot::C_Descriptor<>;                                                      \
+                                                                                                   \
+    static const Descriptor& descriptor() {                                                        \
+        static Descriptor descriptor{};                                                            \
+        return descriptor;                                                                         \
     }                                                                                              \
-)
-
-
-
-//==================================================================================================
-// GD_ECS_EMPTY_COMPONENT
-//==================================================================================================
-
-/**
- * using ECSType = godot::ECS;
- *
- * struct Marker {};
- *
- * GD_ECS_EMPTY_COMPONENT(
- *     ECSType,
- *     C_Marker,
- *     Marker // Do not use godot::Ref<C_Marker> here.
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Marker::register_types();
- */
-#define GD_ECS_EMPTY_COMPONENT(GD_ECS_SINGLETON_TYPE, GD_ECS_COMPONENT_NAME, ECS_COMPONENT_NAME)   \
-GD_ECS_EMPTY_COMPONENT_WITH_PARENT(                                                                \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
-    ECS_COMPONENT_NAME                                                                             \
-)
+                                                                                                   \
+    static ECS_COMPONENT_NAME from_tuple(const Descriptor::TupleType&) {                           \
+        return {};                                                                                 \
+    }                                                                                              \
+                                                                                                   \
+    Descriptor::TupleType to_tuple() const {                                                       \
+        return {};                                                                                 \
+    }
 
 
 
@@ -335,57 +245,63 @@ GD_ECS_EMPTY_COMPONENT_WITH_PARENT(                                             
 // GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE
 //==================================================================================================
 
-/**
- * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
- *
- * using ECSType = godot::ECS;
- *
- * struct Single {
- *     bool x{};
- * };
- *
- * GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(
- *     ECSType,
- *     C_Single, ECSType::ComponentType,
- *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
- *     {
- *         auto &reg = ECSType::get_registry();
- *         reg.emplace_or_replace<Single>(p_entity, x);
- *         // Alternatively, the Godot component itself can be stored in the registry, for example
- *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<C_Single>>(p_entity, this);
- *     },
- *     godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x //, true // Optional value.
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Single::register_types();
- */
 #define GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                           \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
     GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
-    EMPLACE_OR_REPLACE_BODY,                                                                       \
-    GD_PROPERTY_INFO,                                                                              \
-    VALUE_TYPE,                                                                                    \
-    VALUE_NAME,                                                                                    \
-    ...                                                                                            \
+    ECS_COMPONENT_NAME,                                                                            \
+    EMPLACE_OR_REPLACE_BODY                                                                        \
 )                                                                                                  \
 class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {                                \
     GDCLASS(GD_ECS_COMPONENT_NAME, GD_ECS_COMPONENT_PARENT_TYPE)                                   \
                                                                                                    \
-public:                                                                                            \
-    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GD_ECS_COMPONENT_PARENT_TYPE::Signal)                       \
+    static_assert(                                                                                 \
+        godot::gd_ecs_has_component_descriptor<ECS_COMPONENT_NAME>,                                \
+        "Concept violation summary:\n"                                                             \
+        #ECS_COMPONENT_NAME " is not a valid gd_ecs_has_component_descriptor component type.\n"    \
+        "\n"                                                                                       \
+        "Expected interface:\n"                                                                    \
+        "\n"                                                                                       \
+        "struct " #ECS_COMPONENT_NAME " {\n"                                                       \
+        "    using Descriptor = std::tuple<...>;\n"                                                \
+        "    static const Descriptor& descriptor();\n"                                             \
+        "    static " #ECS_COMPONENT_NAME " from_tuple(const Descriptor::TupleType& p_data);\n"    \
+        "    Descriptor::TupleType to_tuple() const;\n"                                            \
+        "};"                                                                                       \
+    );                                                                                             \
+                                                                                                   \
+                                                                                                   \
                                                                                                    \
 public:                                                                                            \
-    VALUE_TYPE VALUE_NAME{__VA_ARGS__};                                                            \
+    using ComponentType = ECS_COMPONENT_NAME;                                                      \
+    using DescriptorType = ComponentType::Descriptor;                                              \
                                                                                                    \
-public:                                                                                            \
+                                                                                                   \
+                                                                                                   \
+    DescriptorType::TupleType data{ComponentType::descriptor().defaults};                          \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
     static void register_types() {                                                                 \
         GDREGISTER_RUNTIME_CLASS(GD_ECS_COMPONENT_NAME);                                           \
+        GD_ECS_SINGLETON_TYPE::register_type<ECS_COMPONENT_NAME>(#ECS_COMPONENT_NAME);             \
     }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+    template <std::size_t I, typename T>                                                           \
+    void set(const T& p_value) {                                                                   \
+        std::get<I>(data) = p_value;                                                               \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+    template <std::size_t I, typename T>                                                           \
+    T get() const {                                                                                \
+        return std::get<I>(data);                                                                  \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
                                                                                                    \
     virtual void emplace_or_replace(                                                               \
         [[maybe_unused]] godot::Node &p_entity_node,                                               \
@@ -394,12 +310,40 @@ public:                                                                         
         EMPLACE_OR_REPLACE_BODY                                                                    \
     }                                                                                              \
                                                                                                    \
-    _HELPER_GD_ECS_COMPONENT_FIELD_SET_GET(GD_PROPERTY_INFO, VALUE_TYPE, VALUE_NAME, __VA_ARGS__)  \
+                                                                                                   \
                                                                                                    \
 protected:                                                                                         \
     static void _bind_methods() {                                                                  \
-        using _HELPER_GD_ECS_COMPONENT_FIELD_BIND_GDComponentName = GD_ECS_COMPONENT_NAME;         \
-        _HELPER_GD_ECS_COMPONENT_FIELD_BIND(GD_PROPERTY_INFO, VALUE_TYPE, VALUE_NAME, __VA_ARGS__) \
+        bind_all(std::make_index_sequence<std::tuple_size_v<DescriptorType::TupleType>>{});        \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+private:                                                                                           \
+    template <std::size_t I>                                                                       \
+    static void bind_field() {                                                                     \
+        using FieldType = std::tuple_element_t<I, DescriptorType::TupleType>;                      \
+                                                                                                   \
+        auto &descriptor = ECS_COMPONENT_NAME::descriptor();                                       \
+        auto &field = descriptor.fields[I];                                                        \
+                                                                                                   \
+        godot::ClassDB::bind_method(                                                               \
+            godot::D_METHOD(field.set_fn, "p_value"),                                              \
+            &GD_ECS_COMPONENT_NAME::set<I, FieldType>                                              \
+        );                                                                                         \
+        godot::ClassDB::bind_method(                                                               \
+            godot::D_METHOD(field.get_fn),                                                         \
+            &GD_ECS_COMPONENT_NAME::get<I, FieldType>                                              \
+        );                                                                                         \
+                                                                                                   \
+        ADD_PROPERTY(field.property_info, field.set_fn, field.get_fn);                             \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+    template <std::size_t... I>                                                                    \
+    static void bind_all(std::index_sequence<I...>) {                                              \
+        (bind_field<I>(), ...);                                                                    \
     }                                                                                              \
                                                                                                    \
 };
@@ -410,182 +354,19 @@ protected:                                                                      
 // GD_ECS_COMPONENT_EMPLACE_OR_REPLACE
 //==================================================================================================
 
-/**
- * using ECSType = godot::ECS;
- *
- * struct Single {
- *     bool x{};
- * };
- *
- * GD_ECS_COMPONENT_EMPLACE_OR_REPLACE(
- *     ECSType,
- *     C_Single,
- *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
- *     {
- *         auto &reg = ECSType::get_registry();
- *         reg.emplace_or_replace<Single>(p_entity, x);
- *         // Alternatively, the Godot component itself can be stored in the registry, for example
- *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<C_Single>>(p_entity, this);
- *     },
- *     godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x //, true // Optional value.
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Single::register_types();
- */
 #define GD_ECS_COMPONENT_EMPLACE_OR_REPLACE(                                                       \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
-    EMPLACE_OR_REPLACE_BODY,                                                                       \
-    GD_PROPERTY_INFO,                                                                              \
-    VALUE_TYPE,                                                                                    \
-    VALUE_NAME,                                                                                    \
-    ...                                                                                            \
+    ECS_COMPONENT_NAME,                                                                            \
+    EMPLACE_OR_REPLACE_BODY                                                                        \
 )                                                                                                  \
 GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                                   \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
     GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
-    EMPLACE_OR_REPLACE_BODY,                                                                       \
-    GD_PROPERTY_INFO,                                                                              \
-    VALUE_TYPE,                                                                                    \
-    VALUE_NAME,                                                                                    \
-    __VA_ARGS__                                                                                    \
-)
-
-
-
-//==================================================================================================
-// GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE
-//==================================================================================================
-
-/**
- * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
- *
- * using ECSType = godot::ECS;
- *
- * struct Multi {
- *     godot::StringName name{};
- *     godot::Vector2 point{};
- *     bool x{};
- * };
- *
- * #define C_Multi_FIELDS(X)                                                                       \
- * X(godot::PropertyInfo(godot::Variant::Type::STRING_NAME, "name"), godot::StringName, name)      \
- * X(godot::PropertyInfo(godot::Variant::Type::VECTOR2, "point"), godot::Vector2, point)           \
- * X(godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x, true) // Optional value.
- *
- * GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(
- *     ECSType,
- *     C_Multi, ECSType::ComponentType,
- *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
- *     {
- *         auto &reg = ECSType::get_registry();
- *         reg.emplace_or_replace<Multi>(p_entity, name, point);
- *         // Alternatively, the Godot component itself can be stored in the registry, for example
- *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<C_Multi>>(p_entity, this);
- *     },
- *     C_Multi_FIELDS
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Multi::register_types();
- */
-#define GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(                                     \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
-    EMPLACE_OR_REPLACE_BODY,                                                                       \
-    FIELD_LIST                                                                                     \
+    ECS_COMPONENT_NAME,                                                                            \
+    EMPLACE_OR_REPLACE_BODY                                                                        \
 )                                                                                                  \
-class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {                                \
-    GDCLASS(GD_ECS_COMPONENT_NAME, GD_ECS_COMPONENT_PARENT_TYPE)                                   \
-                                                                                                   \
-public:                                                                                            \
-    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GD_ECS_COMPONENT_PARENT_TYPE::Signal)                       \
-                                                                                                   \
-public:                                                                                            \
-    FIELD_LIST(_HELPER_GD_ECS_COMPONENT_FIELD_DECLARE)                                             \
-                                                                                                   \
-public:                                                                                            \
-    static void register_types() {                                                                 \
-        GDREGISTER_RUNTIME_CLASS(GD_ECS_COMPONENT_NAME);                                           \
-    }                                                                                              \
-                                                                                                   \
-    virtual void emplace_or_replace(                                                               \
-        [[maybe_unused]] godot::Node &p_entity_node,                                               \
-        [[maybe_unused]] GD_ECS_SINGLETON_TYPE::RegistryType::entity_type &p_entity                \
-    ) override {                                                                                   \
-        EMPLACE_OR_REPLACE_BODY                                                                    \
-    }                                                                                              \
-                                                                                                   \
-    FIELD_LIST(_HELPER_GD_ECS_COMPONENT_FIELD_SET_GET)                                             \
-                                                                                                   \
-protected:                                                                                         \
-    static void _bind_methods() {                                                                  \
-        using _HELPER_GD_ECS_COMPONENT_FIELD_BIND_GDComponentName = GD_ECS_COMPONENT_NAME;         \
-        FIELD_LIST(_HELPER_GD_ECS_COMPONENT_FIELD_BIND)                                            \
-    }                                                                                              \
-};
-
-
-
-//==================================================================================================
-// GD_ECS_COMPONENT_MULTI_EMPLACE_OR_REPLACE
-//==================================================================================================
-
-/**
- * using ECSType = godot::ECS;
- *
- * struct Multi {
- *     godot::StringName name{};
- *     godot::Vector2 point{};
- *     bool x{};
- * };
- *
- * #define C_Multi_FIELDS(X)                                                                       \
- * X(godot::PropertyInfo(godot::Variant::Type::STRING_NAME, "name"), godot::StringName, name)      \
- * X(godot::PropertyInfo(godot::Variant::Type::VECTOR2, "point"), godot::Vector2, point)           \
- * X(godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x, true) // Optional value.
- *
- * GD_ECS_COMPONENT_MULTI_EMPLACE_OR_REPLACE(
- *     ECSType,
- *     C_Multi,
- *     // void emplace_or_replace(Node &p_entity_node, EntityType &p_entity)
- *     {
- *         auto &reg = ECSType::get_registry();
- *         reg.emplace_or_replace<Multi>(p_entity, name, point);
- *         // Alternatively, the Godot component itself can be stored in the registry, for example
- *         // wrapped in godot::Ref.
- *         //reg.emplace_or_replace<godot::Ref<C_Multi>>(p_entity, this);
- *     },
- *     C_Multi_FIELDS
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Multi::register_types();
- */
-#define GD_ECS_COMPONENT_MULTI_EMPLACE_OR_REPLACE(                                                 \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    EMPLACE_OR_REPLACE_BODY,                                                                       \
-    FIELD_LIST                                                                                     \
-)                                                                                                  \
-GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(                                             \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
-    EMPLACE_OR_REPLACE_BODY,                                                                       \
-    FIELD_LIST                                                                                     \
-)
 
 
 
@@ -593,50 +374,22 @@ GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(                          
 // GD_ECS_COMPONENT_WITH_PARENT
 //==================================================================================================
 
-/**
- * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
- *
- * using ECSType = godot::ECS;
- *
- * struct Single {
- *     bool x{};
- * };
- *
- * GD_ECS_COMPONENT_WITH_PARENT(
- *     ECSType,
- *     C_Single, ECSType::ComponentType,
- *     Single, // Do not use godot::Ref<C_Single> here.
- *     godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x //, true // Optional value.
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Single::register_types();
- */
 #define GD_ECS_COMPONENT_WITH_PARENT(                                                              \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
     GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
-    ECS_COMPONENT_NAME,                                                                            \
-    GD_PROPERTY_INFO,                                                                              \
-    VALUE_TYPE,                                                                                    \
-    VALUE_NAME,                                                                                    \
-    ...                                                                                            \
+    ECS_COMPONENT_NAME                                                                             \
 )                                                                                                  \
 GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                                   \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
     GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
+    ECS_COMPONENT_NAME,                                                                            \
     {                                                                                              \
-        auto &reg = GD_ECS_SINGLETON_TYPE::get_registry();                                         \
-        reg.emplace_or_replace<ECS_COMPONENT_NAME>(p_entity, ECS_COMPONENT_NAME{VALUE_NAME});      \
-    },                                                                                             \
-    GD_PROPERTY_INFO,                                                                              \
-    VALUE_TYPE,                                                                                    \
-    VALUE_NAME,                                                                                    \
-    __VA_ARGS__                                                                                    \
-)
+        auto &reg = GD_ECS_SINGLETON_TYPE::registry();                                             \
+        godot::gd_ecs_emplace_or_replace_tuple<ECS_COMPONENT_NAME>(reg, p_entity, data);           \
+    }                                                                                              \
+)                                                                                                  \
 
 
 
@@ -644,142 +397,10 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
 // GD_ECS_COMPONENT
 //==================================================================================================
 
-/**
- * using ECSType = godot::ECS;
- *
- * struct Single {
- *     bool x{};
- * };
- *
- * GD_ECS_COMPONENT(
- *     ECSType,
- *     C_Single,
- *     Single, // Do not use godot::Ref<C_Single> here.
- *     godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x //, true // Optional value.
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Single::register_types();
- */
-#define GD_ECS_COMPONENT(                                                                          \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    ECS_COMPONENT_NAME,                                                                            \
-    GD_PROPERTY_INFO,                                                                              \
-    VALUE_TYPE,                                                                                    \
-    VALUE_NAME,                                                                                    \
-    ...                                                                                            \
-)                                                                                                  \
+#define GD_ECS_COMPONENT(GD_ECS_SINGLETON_TYPE, GD_ECS_COMPONENT_NAME, ECS_COMPONENT_NAME)         \
 GD_ECS_COMPONENT_WITH_PARENT(                                                                      \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
     GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
-    ECS_COMPONENT_NAME,                                                                            \
-    GD_PROPERTY_INFO,                                                                              \
-    VALUE_TYPE,                                                                                    \
-    VALUE_NAME,                                                                                    \
-    __VA_ARGS__                                                                                    \
-)
-
-
-
-//==================================================================================================
-// GD_ECS_COMPONENT_MULTI_WITH_PARENT
-//==================================================================================================
-
-/**
- * The parent class must expose a public 'Signal' struct when signal generation is not disabled.
- *
- * using ECSType = godot::ECS;
- *
- * struct Multi {
- *     godot::StringName name{};
- *     godot::Vector2 point{};
- *     bool x{};
- * };
- *
- * #define C_Multi_FIELDS(X)                                                                       \
- * X(godot::PropertyInfo(godot::Variant::Type::STRING_NAME, "name"), godot::StringName, name)      \
- * X(godot::PropertyInfo(godot::Variant::Type::VECTOR2, "point"), godot::Vector2, point)           \
- * X(godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x, true) // Optional value.
- *
- * GD_ECS_COMPONENT_MULTI_WITH_PARENT(
- *     ECSType,
- *     C_Multi, ECSType::ComponentType,
- *     Multi, // Do not use godot::Ref<C_Multi> here.
- *     C_Multi_FIELDS
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Multi::register_types();
- */
-#define GD_ECS_COMPONENT_MULTI_WITH_PARENT(                                                        \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
-    ECS_COMPONENT_NAME,                                                                            \
-    FIELD_LIST                                                                                     \
-)                                                                                                  \
-GD_ECS_COMPONENT_MULTI_WITH_PARENT_EMPLACE_OR_REPLACE(                                             \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
-    {                                                                                              \
-        auto &reg = GD_ECS_SINGLETON_TYPE::get_registry();                                         \
-        reg.emplace_or_replace<ECS_COMPONENT_NAME>(                                                \
-            p_entity,                                                                              \
-            ECS_COMPONENT_NAME{FIELD_LIST(_HELPER_GD_ECS_COMPONENT_EXTRACT_VALUE_NAME_COMMA)}      \
-        );                                                                                         \
-    },                                                                                             \
-    FIELD_LIST                                                                                     \
-)
-
-
-
-//==================================================================================================
-// GD_ECS_COMPONENT_MULTI
-//==================================================================================================
-
-/**
- * using ECSType = godot::ECS;
- *
- * struct Multi {
- *     godot::StringName name{};
- *     godot::Vector2 point{};
- *     bool x{};
- * };
- *
- * #define C_Multi_FIELDS(X)                                                                       \
- * X(godot::PropertyInfo(godot::Variant::Type::STRING_NAME, "name"), godot::StringName, name)      \
- * X(godot::PropertyInfo(godot::Variant::Type::VECTOR2, "point"), godot::Vector2, point)           \
- * X(godot::PropertyInfo(godot::Variant::Type::BOOL, "x"), bool, x, true) // Optional value.
- *
- * GD_ECS_COMPONENT_MULTI(
- *     ECSType,
- *     C_Multi,
- *     Multi, // Do not use godot::Ref<C_Multi> here.
- *     C_Multi_FIELDS
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Multi::register_types();
- */
-#define GD_ECS_COMPONENT_MULTI(                                                                    \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    ECS_COMPONENT_NAME,                                                                            \
-    FIELD_LIST                                                                                     \
-)                                                                                                  \
-GD_ECS_COMPONENT_MULTI_WITH_PARENT(                                                                \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
-    ECS_COMPONENT_NAME,                                                                            \
-    FIELD_LIST                                                                                     \
+    ECS_COMPONENT_NAME                                                                             \
 )
