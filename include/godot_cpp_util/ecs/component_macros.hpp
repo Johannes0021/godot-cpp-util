@@ -144,14 +144,14 @@ struct C_Descriptor final {
 
 
 
-    FieldTypeTuple fields{};
     godot::StringName name{};
+    FieldTypeTuple fields{};
 
 
 
-    C_Descriptor(const C_Field<StructType, Ts> ...p_fields, const godot::StringName &p_name)
-        : fields(p_fields...)
-        , name(p_name)
+    C_Descriptor(const godot::StringName &p_name, const C_Field<StructType, Ts> ...p_fields)
+        : name(p_name)
+        , fields(p_fields...)
     {}
 
 
@@ -367,9 +367,9 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
 // GD_ECS_EMPTY_COMPONENT_DESCRIPTOR
 //==================================================================================================
 
-#define GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(ECS_COMPONENT_NAME)                                      \
+#define GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(ECS_COMPONENT_NAME, ...)                                 \
 static const auto& descriptor() {                                                                  \
-    static godot::C_Descriptor<ECS_COMPONENT_NAME> descriptor{};                                   \
+    static godot::C_Descriptor<ECS_COMPONENT_NAME> descriptor{__VA_ARGS__};                        \
     return descriptor;                                                                             \
 }                                                                                                  \
 
@@ -402,6 +402,7 @@ class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {             
         "\n"                                                                                       \
         "    static const auto& descriptor() {\n"                                                  \
         "        static const auto descriptor = godot::C_Descriptor{\n"                            \
+        "            //\"ComponentName\", // Custom name (Defaults to " #ECS_COMPONENT_NAME ")\n"  \
         "            godot::C_Field{&"                                                             \
                          #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"},\n"  \
         "        };\n"                                                                             \
