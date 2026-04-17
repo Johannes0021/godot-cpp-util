@@ -402,7 +402,7 @@ class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {             
         "\n"                                                                                       \
         "    static const auto& descriptor() {\n"                                                  \
         "        static const auto descriptor = godot::C_Descriptor{\n"                            \
-        "            //\"ComponentName\", // Custom name (Defaults to " #ECS_COMPONENT_NAME ")\n"  \
+        "            //\"ComponentName\", // Defaults to \"" #ECS_COMPONENT_NAME "\".\n"           \
         "            godot::C_Field{&"                                                             \
                          #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"},\n"  \
         "        };\n"                                                                             \
