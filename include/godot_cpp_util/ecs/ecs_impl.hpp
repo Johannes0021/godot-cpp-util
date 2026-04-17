@@ -6,7 +6,7 @@
  * This file provides the macro GD_ECS_IMPL which defines a customizable implementation required to
  * connect Godot data structures with an ECS backend implementation.
  *
- * The behavior of this system is highly configurable through the macro parameters.
+ * The behavior of this system is configurable through the macro parameters.
  *
  * The design is intentionally kept as generic as possible in order to support multiple ECS
  * implementations or custom backends.
@@ -153,8 +153,8 @@
 #include "godot_cpp/templates/hash_map.hpp"
 #include "godot_cpp/templates/local_vector.hpp"
 
-#include "component_macros.hpp"
-#include "entity_macros.hpp"
+#include "component.hpp"
+#include "entity.hpp"
 #include "signal_macros.hpp"
 
 
@@ -174,30 +174,36 @@
  * It is responsible for holding the active registry instance and exposing it to all ECS-related
  * operations.
  *
+ * It is also used to register components in order to translate their data between the editor and
+ * the ECS backend.
+ *
  * The singleton is not thread safe. Any required synchronization must be handled by the caller.
  *
  *
  *
  * --- GD_ECS_COMPONENT_NAME class ---
  *
- * Base class for all ECS components that are exposed to Godot.
+ * Base class for all ECS resource wrapper components exposed to Godot.
  *
- * This class acts as the bridge between the Godot editor world and the ECS world.
- * Data configured in the editor exists as Godot resources and must be translated into ECS
- * components stored in the registry.
+ * This is not the actual ECS component. It is a Godot-side wrapper (GDCLASS) used only to
+ * expose and edit component data inside the editor.
+ *
+ * The actual ECS component lives in the registry. This class acts as the bridge between the
+ * Godot editor world and the ECS world by translating editor-side data into ECS components.
+ *
+ * Data configured in the editor is stored as Godot resources and must be converted into ECS
+ * components during synchronization with the registry.
  *
  * The translation step is performed by emplace_or_replace, which must be overridden by derived
- * classes. Its responsibility is to read data from the Godot-side component and transfer it into
- * the ECS registry for the given entity.
+ * classes. Its responsibility is to read the wrapper data and write it into the ECS registry for
+ * the given entity.
  *
- * Each derived component defines how its editor-facing data maps to ECS data.
+ * The Entity class exposes a property array of components. Wrapper components derived from this
+ * class can be added to that array. When the property is set, the Entity iterates over the array
+ * and calls emplace_or_replace on each wrapper in sequence.
  *
- * The Entity class exposes a property arrays of components. Components derived from this class can
- * be added to that array. When the property is set, the Entity iterates over the array and calls
- * emplace_or_replace on each component in sequence.
- *
- * For macros that are intended to make it easier to define a component class(GDCLASS) see
- * "component_macros.hpp"
+ * For helpers intended to simplify the definition of ECS component wrappers (GDCLASS), see
+ * "component.hpp".
  *
  * Usage Example:
  *
@@ -279,8 +285,8 @@
  * Notes
  * -------------------------------------------------------------------------------------------------
  *
- * See "entity_macros.hpp" for helpers to define entities.
- * See "component_macros.hpp" for helpers to define components.
+ * See "entity.hpp" for helpers to define entities.
+ * See "component.hpp" for helpers to define components.
  */
 #define GD_ECS_IMPL(                                                                               \
     GD_ECS_NAMESPACE,                                                                              \
@@ -374,6 +380,7 @@ public:                                                                         
             ) -> bool                                                                              \
             {                                                                                      \
                 auto &reg = GD_ECS_SINGLETON_NAME::registry();                                     \
+                                                                                                   \
                 auto &descriptor = T::descriptor();                                                \
                 T instance{};                                                                      \
                 descriptor.set(instance, p_data);                                                  \
@@ -426,10 +433,12 @@ public:                                                                         
         void init_get() {                                                                          \
             get = [](const GD_ECS_REGISTRY_TYPE::entity_type &p_entity) -> godot::Variant {        \
                 auto &reg = GD_ECS_SINGLETON_NAME::registry();                                     \
+                                                                                                   \
                 if (auto *instance = reg.try_get<T>(p_entity)) {                                   \
                     auto &descriptor = T::descriptor();                                            \
                     return descriptor.to_variant(*instance);                                       \
                 }                                                                                  \
+                                                                                                   \
                 return godot::Variant{};                                                           \
             };                                                                                     \
         }                                                                                          \
@@ -458,6 +467,7 @@ public:                                                                         
                                                                                                    \
     static GD_ECS_REGISTRY_TYPE& registry() {                                                      \
         static GD_ECS_REGISTRY_TYPE registry{__VA_ARGS__};                                         \
+                                                                                                   \
         return registry;                                                                           \
     }                                                                                              \
                                                                                                    \
@@ -501,9 +511,9 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    static std::optional<godot::StringName> get_component_name(ComponentIndex component_index) {   \
-        if (component_index < component_names().size()) {                                          \
-            return component_names()[component_index];                                             \
+    static std::optional<godot::StringName> get_component_name(ComponentIndex p_component_index) { \
+        if (p_component_index < component_names().size()) {                                        \
+            return component_names()[p_component_index];                                           \
         }                                                                                          \
                                                                                                    \
         return std::nullopt;                                                                       \
@@ -590,6 +600,7 @@ private:                                                                        
                                                                                                    \
     static godot::HashMap<godot::StringName, Entry> &component_name_to_entry_mut() {               \
         static godot::HashMap<godot::StringName, Entry> map{};                                     \
+                                                                                                   \
         return map;                                                                                \
     }                                                                                              \
                                                                                                    \
@@ -597,6 +608,7 @@ private:                                                                        
                                                                                                    \
     static godot::LocalVector<godot::StringName, ComponentIndex> &component_names_mut() {          \
         static godot::LocalVector<godot::StringName, ComponentIndex> vec{};                        \
+                                                                                                   \
         return vec;                                                                                \
     }                                                                                              \
                                                                                                    \
@@ -610,7 +622,7 @@ class GD_ECS_COMPONENT_NAME : public godot::Resource {                          
                                                                                                    \
                                                                                                    \
 public:                                                                                            \
-    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GDTypedSignal::Resource)                                    \
+    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, godot::GDTypedSignal::Resource)                             \
                                                                                                    \
                                                                                                    \
                                                                                                    \
