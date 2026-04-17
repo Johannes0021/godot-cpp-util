@@ -374,10 +374,10 @@ public:                                                                         
             ) -> bool                                                                              \
             {                                                                                      \
                 auto &reg = GD_ECS_SINGLETON_NAME::registry();                                     \
-                reg.emplace_or_replace<T>(                                                         \
-                    p_entity,                                                                      \
-                    T::from_tuple(godot::gd_ecs_variant_to_tuple(p_data, T::descriptor()))         \
-                );                                                                                 \
+                auto &descriptor = T::descriptor();                                                \
+                T instance{};                                                                      \
+                descriptor.set(instance, p_data);                                                  \
+                reg.emplace_or_replace<T>(p_entity, instance);                                     \
                                                                                                    \
                 return true;                                                                       \
             };                                                                                     \
@@ -426,8 +426,9 @@ public:                                                                         
         void init_get() {                                                                          \
             get = [](const GD_ECS_REGISTRY_TYPE::entity_type &p_entity) -> godot::Variant {        \
                 auto &reg = GD_ECS_SINGLETON_NAME::registry();                                     \
-                if (auto *t = reg.try_get<T>(p_entity)) {                                          \
-                    return gd_ecs_tuple_to_variant(t->to_tuple(), T::descriptor());                \
+                if (auto *instance = reg.try_get<T>(p_entity)) {                                   \
+                    auto &descriptor = T::descriptor();                                            \
+                    return descriptor.to_variant(*instance);                                       \
                 }                                                                                  \
                 return godot::Variant{};                                                           \
             };                                                                                     \

@@ -197,13 +197,13 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    void set_component(const godot::StringName &p_component, const godot::Variant& p_data) {       \
+    void set_component(const godot::StringName &p_component, const godot::Variant& p_data) const { \
         GD_ECS_SINGLETON_NAME::emplace_or_replace(m_entity, p_component, p_data);                  \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    void components_diff(const godot::Dictionary &p_components) {                                  \
+    void components_diff(const godot::Dictionary &p_components) const {                            \
         godot::Array keys = p_components.keys();                                                   \
         for (int i = 0; i < keys.size(); ++i) {                                                    \
             auto &variant_c_name = keys[i];                                                        \
@@ -245,19 +245,19 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    bool remove_component(const godot::StringName &p_component) {                                  \
+    bool remove_component(const godot::StringName &p_component) const {                            \
         return GD_ECS_SINGLETON_NAME::remove(m_entity, p_component);                               \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    bool has_component(const godot::StringName &p_component) {                                     \
+    bool has_component(const godot::StringName &p_component) const {                               \
         return GD_ECS_SINGLETON_NAME::has(m_entity, p_component);                                  \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    godot::Variant get_component(const godot::StringName &p_component) {                           \
+    godot::Variant get_component(const godot::StringName &p_component) const {                     \
         return GD_ECS_SINGLETON_NAME::get(m_entity, p_component);                                  \
     }                                                                                              \
                                                                                                    \
@@ -349,13 +349,13 @@ protected:                                                                      
                                                                                                    \
                                                                                                    \
 private:                                                                                           \
-    godot::Array get_empty_typed_array() {                                                         \
+    godot::Array get_empty_typed_array() const {                                                   \
         return godot::Array{};                                                                     \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    void components_diff_flat(const godot::StringName &p_key, const godot::Variant &p_data) {      \
+    void components_diff_flat(const godot::StringName &p_key, const godot::Variant &p_data) const {\
         if (p_key == godot::StaticStringName<"+">::get()) {                                        \
             switch (p_data.get_type()) {                                                           \
                 case godot::Variant::Type::STRING:                                                 \
