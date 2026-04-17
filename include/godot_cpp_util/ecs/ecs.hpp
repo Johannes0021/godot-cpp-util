@@ -17,16 +17,13 @@
 
 
 
-// __has_include might not exist on very old compilers.
-#if !defined(__has_include)
-  #define __has_include(x) 0
-#endif
+#include "helper_macros.hpp"
 
 
 
-#if __has_include("entt/entity/registry.hpp")
+#if _HELPER_GD_ECS_HAS_INCLUDE("entt/entity/registry.hpp")
     #include "entt/entity/registry.hpp"
-#elif __has_include("entt/entt.hpp")
+#elif _HELPER_GD_ECS_HAS_INCLUDE("entt/entt.hpp")
     #include "entt/entt.hpp"
 #else
     #error "EnTT not found. Please make sure EnTT is available in your include paths."

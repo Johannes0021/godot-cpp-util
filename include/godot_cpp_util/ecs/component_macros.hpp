@@ -59,6 +59,8 @@
 #include "godot_cpp/variant/string_name.hpp"
 #include "godot_cpp/variant/variant.hpp"
 
+#include "signal_macros.hpp"
+
 
 
 //==================================================================================================
@@ -411,6 +413,11 @@ class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {             
         "    }\n"                                                                                  \
         "};\n\n\n"                                                                                 \
     );                                                                                             \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+public:                                                                                            \
+    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GD_ECS_COMPONENT_PARENT_TYPE::Signal)                       \
                                                                                                    \
                                                                                                    \
                                                                                                    \
