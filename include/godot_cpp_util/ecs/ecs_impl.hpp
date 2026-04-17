@@ -73,7 +73,7 @@
  *     // @brief Assigns or replaces the given element for an entity.
  *     // @return Type is void here since it is unused in this file, but may be customized
  *     //         by implementations.
- *     template<typename T, typename... Args>
+ *     template<typename T, typename ...Args>
  *     void emplace_or_replace(
  *         [[maybe_unused]] const entity_type entt,
  *         [[maybe_unused]] Args &&...args

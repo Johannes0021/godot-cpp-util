@@ -68,7 +68,7 @@
 namespace godot {
 
 template<typename StructT, typename FieldT>
-struct C_Field {
+struct C_Field final {
     using StructType = StructT;
     using FieldType = FieldT;
 
@@ -137,8 +137,8 @@ struct C_Field {
 
 
 
-template <typename StructT, typename... Ts>
-struct C_Descriptor {
+template <typename StructT, typename ...Ts>
+struct C_Descriptor final {
     using StructType = StructT;
     using FieldTypeTuple = std::tuple<C_Field<StructType, Ts>...>;
 
@@ -146,6 +146,19 @@ struct C_Descriptor {
 
     FieldTypeTuple fields{};
     godot::StringName name{};
+
+
+
+    C_Descriptor(const C_Field<StructType, Ts> ...p_fields, const godot::StringName &p_name)
+        : fields(p_fields...)
+        , name(p_name)
+    {}
+
+
+
+    C_Descriptor(const C_Field<StructType, Ts> ...p_fields)
+        : fields(p_fields...)
+    {}
 
 
 
@@ -159,8 +172,8 @@ struct C_Descriptor {
         }
 
         ERR_PRINT(godot::vformat(
-            "C_Descriptor.set (%s): Missing member pointer for field %s. Tried to set: %s",
-            name,
+            "C_Descriptor.set()%s: Missing member pointer for field '%s'. Tried to set: %s",
+            name.is_empty() ? "" : godot::vformat(" (%s)", name),
             field.property_info.name,
             p_value
         ));
@@ -195,8 +208,8 @@ struct C_Descriptor {
         }
 
         ERR_PRINT(godot::vformat(
-            "C_Descriptor.get (%s): Missing member pointer for field %s.",
-            name,
+            "C_Descriptor.try_get()%s: Missing member pointer for field '%s'.",
+            name.is_empty() ? "" : godot::vformat(" (%s)", name),
             field.property_info.name
         ));
 
@@ -215,8 +228,8 @@ struct C_Descriptor {
         }
 
         ERR_PRINT(godot::vformat(
-            "C_Descriptor.get (%s): Missing member pointer for field %s.",
-            name,
+            "C_Descriptor.try_get()%s: Missing member pointer for field '%s'.",
+            name.is_empty() ? "" : godot::vformat(" (%s)", name),
             field.property_info.name
         ));
 
@@ -245,7 +258,7 @@ struct C_Descriptor {
 
 
 private:
-    template <std::size_t... Is>
+    template <std::size_t ...Is>
     void set_from_dictionary(
         StructType &p_instance,
         const godot::Dictionary &p_dictionary,
@@ -285,7 +298,7 @@ private:
 
 
 
-    template <std::size_t... Is>
+    template <std::size_t ...Is>
     godot::Dictionary try_to_dictionary(
         const StructType& p_instance,
         std::index_sequence<Is...>
@@ -306,7 +319,7 @@ struct gd_ecs_is_component_descriptor : std::false_type {};
 
 
 
-template<typename T, typename... Ts>
+template<typename T, typename ...Ts>
 struct gd_ecs_is_component_descriptor<const C_Descriptor<T, Ts...>&> : std::true_type {};
 
 
@@ -378,6 +391,7 @@ class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {             
                                                                                                    \
     static_assert(                                                                                 \
         godot::gd_ecs_has_component_descriptor<ECS_COMPONENT_NAME>,                                \
+        "\n"                                                                                       \
         "Concept violation summary:\n"                                                             \
         #ECS_COMPONENT_NAME " is not a valid gd_ecs_has_component_descriptor component type.\n"    \
         "\n"                                                                                       \
@@ -387,14 +401,14 @@ class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {             
         "    godot::String example{\"default value\"};\n"                                          \
         "\n"                                                                                       \
         "    static const auto& descriptor() {\n"                                                  \
-        "        static const auto descriptor = C_Descriptor{\n"                                   \
-        "            C_Field::field(&"                                                             \
-                         #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"),\n"  \
+        "        static const auto descriptor = godot::C_Descriptor{\n"                            \
+        "            godot::C_Field{&"                                                             \
+                         #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"},\n"  \
         "        };\n"                                                                             \
         "\n"                                                                                       \
         "        return descriptor;\n"                                                             \
         "    }\n"                                                                                  \
-        "};"                                                                                       \
+        "};\n\n\n"                                                                                 \
     );                                                                                             \
                                                                                                    \
                                                                                                    \
@@ -481,7 +495,7 @@ private:                                                                        
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    template <std::size_t... I>                                                                    \
+    template <std::size_t ...I>                                                                    \
     static void bind_all(std::index_sequence<I...>) {                                              \
         (bind_field<I>(), ...);                                                                    \
     }                                                                                              \
