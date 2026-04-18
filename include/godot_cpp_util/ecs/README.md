@@ -168,8 +168,8 @@ inline void register_types() {
     entity = e_node->get_entity();
 
     // The following functions are also accessible from GDScript.
-    e_node->set_gd_component(Ref{memnew(C_Data)});
-    e_node->set_gd_components({Ref{memnew(C_Data)}, Ref{memnew(C_Empty)}});
+    e_node->set_res_component(Ref{memnew(C_Data)});
+    e_node->set_res_components({Ref{memnew(C_Data)}, Ref{memnew(C_Empty)}});
     e_node->set_component("Empty", Variant{});
     e_node->remove_component("Empty");
     if (e_node->has_component("Empty")) {

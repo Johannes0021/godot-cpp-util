@@ -185,7 +185,7 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    void set_gd_component(const godot::Ref<GD_ECS_SINGLETON_NAME::ComponentType> &p_component) {   \
+    void set_res_component(const godot::Ref<GD_ECS_SINGLETON_NAME::ComponentType> &p_component) {  \
         if (p_component.is_valid()) {                                                              \
             p_component->emplace_or_replace(*this, m_entity);                                      \
         }                                                                                          \
@@ -193,9 +193,9 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    void set_gd_components(const godot::Array &p_components) {                                     \
+    void set_res_components(const godot::Array &p_components) {                                    \
         for (auto &variant : p_components) {                                                       \
-            set_gd_component(variant);                                                             \
+            set_res_component(variant);                                                            \
         }                                                                                          \
     }                                                                                              \
                                                                                                    \
@@ -284,12 +284,12 @@ public:                                                                         
 protected:                                                                                         \
     static void _bind_methods() {                                                                  \
         godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD("set_gd_component", "p_component"),                                    \
-            &GD_ECS_ENTITY_NAME::set_gd_component                                                  \
+            godot::D_METHOD("set_res_component", "p_component"),                                   \
+            &GD_ECS_ENTITY_NAME::set_res_component                                                 \
         );                                                                                         \
         godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD("set_gd_components", "p_components"),                                  \
-            &GD_ECS_ENTITY_NAME::set_gd_components                                                 \
+            godot::D_METHOD("set_res_components", "p_components"),                                 \
+            &GD_ECS_ENTITY_NAME::set_res_components                                                \
         );                                                                                         \
         godot::ClassDB::bind_method(                                                               \
             godot::D_METHOD("set_component", "p_component", "p_data"),                             \
@@ -323,11 +323,11 @@ protected:                                                                      
         ADD_PROPERTY(                                                                              \
             godot::PropertyInfo(                                                                   \
                 godot::Variant::ARRAY,                                                             \
-                "gd_components",                                                                   \
+                "res_components",                                                                  \
                 godot::PROPERTY_HINT_RESOURCE_TYPE,                                                \
                 GD_ECS_SINGLETON_NAME::ComponentType::get_class_static()                           \
             ),                                                                                     \
-            "set_gd_components",                                                                   \
+            "set_res_components",                                                                  \
             "get_empty_typed_array"                                                                \
         );                                                                                         \
                                                                                                    \
