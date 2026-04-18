@@ -84,6 +84,9 @@ struct Data {
  * Defines a Resource wrapper for the Data component.
  * This allows the component to be created, stored, and edited as a Godot Resource.
  * Entities such as E_Node can add and manage this component themselves.
+ *
+ * There are also additional component resource wrapper macros that offer more control over the
+ * parent component or how the component is inserted.
  */
 GD_ECS_COMPONENT(ECS, C_Data, Data)
 
@@ -112,9 +115,23 @@ struct Empty {
 
 /**
  * Resource wrapper for the Empty component.
- * Allows attaching the component to entities via the editor or code.
+ *
+ * There are also additional component resource wrapper macros that offer more control over the
+ * parent component or how the component is inserted.
  */
-GD_ECS_COMPONENT(ECS, C_Empty, Empty)
+GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(
+    ECS, C_Empty, ECS::ComponentType, Empty,
+    // void emplace_or_replace(
+    //     godot::Node &p_entity_node,
+    //     ECS::RegistryType::entity_type &p_entity
+    // )
+    {
+        // Access the Empty component via its `data` member.
+        // Access the parent component data via `ParentType::data`, if available.
+        auto &reg = ECS::registry();
+        reg.emplace_or_replace<Empty>(p_entity);
+    }
+)
 
 
 
