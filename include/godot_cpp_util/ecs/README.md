@@ -119,7 +119,7 @@ inline void register_types() {
     // Register entities.
     E_Node::register_types();
 
-    // Register component resources.
+    // Register components and component resources.
     C_Data::register_types();
     C_Empty::register_types();
 
