@@ -16,7 +16,7 @@ using namespace godot;
 
 
 //==================================================================================================
-// Entity definition
+// Entity: E_Node
 //==================================================================================================
 
 // Defines an ECS entity named E_Node that inherits from Godot's Node.
@@ -105,6 +105,7 @@ struct Empty {
  * Allows attaching the component to entities via the editor or code.
  */
 GD_ECS_COMPONENT(ECS, C_Empty, Empty)
+
 
 
 //==================================================================================================
