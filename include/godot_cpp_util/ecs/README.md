@@ -31,7 +31,7 @@ GD_ECS_ENTITY(ECS, E_Node, Node)
 // A component that stores basic example data.
 struct Data {
     int id{21};
-    String name{"Johannes"};
+    String name{"SomeName"};
     float length{21.21f};
     Dictionary meta{};
 
@@ -48,7 +48,7 @@ struct Data {
             // assigns the name "Data".
 
             // Field with explicit PropertyInfo and setter and getter.
-            C_Field{&Data::id, PropertyInfo(Variant::INT, "id"), "set_id", "get_id"},
+            C_Field{&Data::id, PropertyInfo(Variant::Type::INT, "id"), "set_id", "get_id"},
 
             // Field using a simplified constructor with Variant type.
             C_Field{&Data::name, Variant::Type::STRING, "name", "set_name", "get_name"},
@@ -57,13 +57,13 @@ struct Data {
             // - PropertyInfo
             // - "set_length"
             // - "get_length"
-            C_Field{&Data::length, PropertyInfo(Variant::FLOAT, "length")},
+            C_Field{&Data::length, PropertyInfo(Variant::Type::FLOAT, "length")},
 
             // Field with:
-            // - PropertyInfo(Variant::DICTIONARY, "meta")
+            // - PropertyInfo(Variant::Type::DICTIONARY, "meta")
             // - "set_meta"
             // - "get_meta"
-            C_Field{&Data::meta, Variant::DICTIONARY, "meta"}
+            C_Field{&Data::meta, Variant::Type::DICTIONARY, "meta"}
         };
 
         return descriptor;

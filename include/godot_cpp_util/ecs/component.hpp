@@ -1,24 +1,8 @@
 /**
- * This header provides macros that are intended to make it easier to define a component class
- * (GDCLASS).
+ * This header provides helpers that are intended to make it easier to define component classes.
  *
  * Define GD_ECS_DO_NOT_GENERATE_SIGNAL_CODE before including this file to completely disable all
  * generated signal code.
- *
- * Usage Example:
- *
- * #pragma once
- *
- * #include "godot_cpp_util/ecs/ecs.hpp"
- *
- * using ECSType = godot::ECS;
- * struct Marker {};
- * GD_ECS_EMPTY_COMPONENT(ECSType, C_Marker, Marker)
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Marker::register_types();
  *
  *
  *
@@ -369,6 +353,20 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
 // GD_ECS_EMPTY_COMPONENT_DESCRIPTOR
 //==================================================================================================
 
+/**
+ * Generates an empty component descriptor.
+ *
+ * struct Empty {
+ *     // The component name defaults to an empty string unless explicitly specified.
+ *     // When registered via a resource, this name is used directly. If it is empty, the name is
+ *     // taken from GD_ECS_COMPONENT, for example GD_ECS_COMPONENT(ECS, C_Empty, Empty) assigns the
+ *     // name "Empty".
+ *     GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty)
+ *
+ *     // Alternative with a custom component name.
+ *     //GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty, "ComponentName")
+ * };
+ */
 #define GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(ECS_COMPONENT_NAME, ...)                                 \
 static const auto& descriptor() {                                                                  \
     static godot::C_Descriptor<ECS_COMPONENT_NAME> descriptor{__VA_ARGS__};                        \
@@ -381,6 +379,87 @@ static const auto& descriptor() {                                               
 // GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE
 //==================================================================================================
 
+/**
+ * using ECSType = godot::ECS;
+ *
+ * // A component that stores basic example data.
+ * struct Data {
+ *     int id{21};
+ *     godot::String name{"SomeName"};
+ *     float length{21.21f};
+ *     godot::Dictionary meta{};
+ *
+ *     // Default constructor is required by the ECS.
+ *     Data() = default;
+ *
+ *     // Descriptor used by the ECS to expose this component to the Godot editor.
+ *     // It defines how fields are interpreted, serialized, and edited.
+ *     static const auto& descriptor() {
+ *         static const auto descriptor = godot::C_Descriptor{
+ *             // "ComponentName", // Defaults to an empty string if not explicitly specified.
+ *             // When registered via a resource, this name is used directly. If it is empty, the
+ *             // name is taken from GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE, for example
+ *             // GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(ECSType, C_Data, Data, ...)
+ *             // assigns the name "Data".
+ *
+ *             // Field with explicit PropertyInfo and setter and getter.
+ *             godot::C_Field{
+ *                 &Data::id,
+ *                 godot::PropertyInfo(godot::Variant::Type::INT, "id"),
+ *                 "set_id",
+ *                 "get_id"
+ *              },
+ *
+ *             // Field using a simplified constructor with Variant type.
+ *             godot::C_Field{
+ *                 &Data::name,
+ *                 godot::Variant::Type::STRING, "name",
+ *                 "set_name",
+ *                 "get_name"
+ *             },
+ *
+ *             // Field with:
+ *             // - PropertyInfo
+ *             // - "set_length"
+ *             // - "get_length"
+ *             godot::C_Field{
+ *                 &Data::length,
+ *                 godot::PropertyInfo(godot::Variant::Type::FLOAT, "length")
+ *             },
+ *
+ *             // Field with:
+ *             // - PropertyInfo(Variant::Type::DICTIONARY, "meta")
+ *             // - "set_meta"
+ *             // - "get_meta"
+ *             godot::C_Field{&Data::meta, godot::Variant::Type::DICTIONARY, "meta"}
+ *         };
+ *
+ *         return descriptor;
+ *     }
+ * };
+ *
+ * // Defines a Resource wrapper for the Data component.
+ * // This allows the component to be created, stored, and edited as a Godot Resource.
+ * // Entities such as E_Node can add and manage this component themselves.
+ * GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(
+ *     ECSType,
+ *     C_Data, ECSType::ComponentType,
+ *     Data,
+ *     // void emplace_or_replace(
+ *     //     godot::Node &p_entity_node,
+ *     //     ECSType::RegistryType::entity_type &p_entity
+ *     // )
+ *     {
+ *         auto &reg = ECSType::registry();
+ *         reg.emplace_or_replace<Data>(p_entity, data);
+ *     }
+ * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Data::register_types(); // This also calls ECS::register_type<Data>(...);
+ */
 #define GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                           \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
@@ -516,6 +595,30 @@ private:                                                                        
 // GD_ECS_COMPONENT_EMPLACE_OR_REPLACE
 //==================================================================================================
 
+ /**
+ * using ECSType = godot::ECS;
+ *
+ * struct Empty { GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty) };
+ *
+ * GD_ECS_COMPONENT_EMPLACE_OR_REPLACE(
+ *     ECSType,
+ *     C_Empty,
+ *     Empty,
+ *     // void emplace_or_replace(
+ *     //     godot::Node &p_entity_node,
+ *     //     ECSType::RegistryType::entity_type &p_entity
+ *     // )
+ *     {
+ *         auto &reg = ECSType::registry();
+ *         reg.emplace_or_replace<Empty>(p_entity);
+ *     }
+ * )
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Empty::register_types(); // This also calls ECS::register_type<Empty>(...);
+ */
 #define GD_ECS_COMPONENT_EMPLACE_OR_REPLACE(                                                       \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
@@ -536,6 +639,18 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
 // GD_ECS_COMPONENT_WITH_PARENT
 //==================================================================================================
 
+ /**
+ * using ECSType = godot::ECS;
+ *
+ * struct Empty { GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty) };
+ *
+ * GD_ECS_COMPONENT_WITH_PARENT(ECSType, C_Empty, ECSType::ComponentType, Empty)
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Empty::register_types(); // This also calls ECS::register_type<Empty>(...);
+ */
 #define GD_ECS_COMPONENT_WITH_PARENT(                                                              \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
@@ -559,6 +674,18 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
 // GD_ECS_COMPONENT
 //==================================================================================================
 
+ /**
+ * using ECSType = godot::ECS;
+ *
+ * struct Empty { GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty) };
+ *
+ * GD_ECS_COMPONENT(ECSType, C_Empty, Empty)
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Empty::register_types(); // This also calls ECS::register_type<Empty>(...);
+ */
 #define GD_ECS_COMPONENT(GD_ECS_SINGLETON_TYPE, GD_ECS_COMPONENT_NAME, ECS_COMPONENT_NAME)         \
 GD_ECS_COMPONENT_WITH_PARENT(                                                                      \
     GD_ECS_SINGLETON_TYPE,                                                                         \

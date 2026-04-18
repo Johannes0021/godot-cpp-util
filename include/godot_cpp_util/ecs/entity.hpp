@@ -1,5 +1,5 @@
 /**
- * This header provides macros that are intended to make it easier to define a entity class
+ * This header provides hepers that are intended to make it easier to define a entity class
  * (GDCLASS).
  *
  * Define GD_ECS_DO_NOT_GENERATE_SIGNAL_CODE before including this file to completely disable all
@@ -61,8 +61,12 @@ namespace godot {
 template<typename, typename = void>
 struct has_gd_ecs_entity_tag : std::false_type {};
 
+
+
 template<typename T>
 struct has_gd_ecs_entity_tag<T, std::void_t<typename T::gd_ecs_entity_tag>> : std::true_type {};
+
+
 
 template<typename T>
 inline constexpr bool has_gd_ecs_entity_tag_v = has_gd_ecs_entity_tag<T>::value;
