@@ -2,6 +2,16 @@
 
 
 
+This example assumes that the C++ ECS library EnTT is accessible to the project.
+See (https://github.com/skypjack/entt).
+
+If the default configuration is not suitable, EnTT is not used, or more than one ECS singleton
+must coexist, see "ecs_impl.hpp" and provide a custom configuration by defining GD_ECS_IMPL.
+
+For more information on how to use the ECS, refer to the other files in this directory.
+
+
+
 ```cpp
 #pragma once
 
@@ -180,14 +190,19 @@ inline void register_types() {
     // components_diff
     Dictionary diff{};
 
-    // The '+' command expects one of the following value types:
-    // [String, StringName, PackedStringArray, Array, Dictionary].
-    // Using a Dictionary allows emplace_or_replace of multiple components,
+    // Default behavior.
+    // When a Dictionary is used as a value, it represents one or more components,
     // where the key is the component name and the value is the component data.
+    // These entries are applied using emplace_or_replace unless stated otherwise.
+
+    // The '+' command expects one of the following value types:
+    // String, StringName, PackedStringArray, Array, or Dictionary.
+    // Using a Dictionary allows emplace_or_replace of multiple components at once.
+    // key(component name) -> value(component data).
     diff["+"] = "Empty"; // emplace_or_replace Empty{}
 
     // The '-' command expects:
-    // [String, StringName, PackedStringArray, Array].
+    // String, StringName, PackedStringArray, or Array.
     diff["-"] = "Data"; // remove Data
 
     // The '+-' or '-+' commands expect a Dictionary value.
