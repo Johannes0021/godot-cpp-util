@@ -126,7 +126,7 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(
     //     ECS::RegistryType::entity_type &p_entity
     // )
     {
-        // Access the Empty component via its `data` member.
+        // Access the Empty component via the `data` member.
         // Access the parent component data via `ParentType::data`, if available.
         auto &reg = ECS::registry();
         reg.emplace_or_replace<Empty>(p_entity);
