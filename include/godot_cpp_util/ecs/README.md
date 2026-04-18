@@ -145,10 +145,59 @@ inline void register_types() {
     // This provides a lightweight alternative to full Resource exposure while still keeping runtime
     // visibility and editability in debug environments.
     //
-    // Using '+', '-', and '+-' commands, multiple components can be added or removed at once.
-    // This functionality is specifically intended for the remote runtime view in the editor,
+    // Using '+', '-', and '+-' or '-+' commands, multiple components can be added or removed at
+    // once. This functionality is specifically intended for the remote runtime view in the editor,
     // allowing entities to be modified live while the game is running (debug build only).
     // Note: In Godot 4.6.x, Dictionary add and remove operations are currently broken in the remote
     // view (see issue: https://github.com/godotengine/godot/issues/116748).
+
+    auto &reg = ECS::registry();
+    auto entity = reg.create();
+    reg.emplace<Data>(entity);
+
+    Variant data_as_variant = ECS::get(entity, "Data");
+    // Change data_as_variant...
+    ECS::emplace_or_replace(entity, "Data", data_as_variant);
+    if (ECS::has(entity, "Data")) {
+        // ...
+    }
+    ECS::remove(entity, "Data");
+
+    E_Node *e_node = memnew(E_Node);
+    entity = e_node->get_entity();
+
+    // The following functions are also accessible from GDScript.
+    e_node->set_gd_component(Ref{memnew(C_Data)});
+    e_node->set_gd_components({Ref{memnew(C_Data)}, Ref{memnew(C_Empty)}});
+    e_node->set_component("Empty", Variant{});
+    e_node->remove_component("Empty");
+    if (e_node->has_component("Empty")) {
+        // ...
+    }
+    data_as_variant = e_node->get_component("Data");
+
+    // components_diff
+    Dictionary diff{};
+
+    // The '+' command expects one of the following value types:
+    // [String, StringName, PackedStringArray, Array, Dictionary].
+    // Using a Dictionary allows emplace_or_replace of multiple components,
+    // where the key is the component name and the value is the component data.
+    diff["+"] = "Empty"; // emplace_or_replace Empty{}
+
+    // The '-' command expects:
+    // [String, StringName, PackedStringArray, Array].
+    diff["-"] = "Data"; // remove Data
+
+    // The '+-' or '-+' commands expect a Dictionary value.
+    // They allow combining add and remove operations in a single diff.
+    // This is particularly useful in the remote runtime view, where adding a single key pair
+    // can add or remove multiple components at once.
+    // Note: In Godot 4.6.x, Dictionary add and remove operations are currently broken in the remote
+    // view (see issue: https://github.com/godotengine/godot/issues/116748).
+
+    e_node->components_diff(diff);
+
+    memdelete(e_node);
 }
 ```
