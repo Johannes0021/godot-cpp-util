@@ -38,65 +38,21 @@ GD_ECS_ENTITY(ECS, E_Node, Node)
 // Component: Data
 //==================================================================================================
 
-// A component that stores basic example data.
 struct Data {
     int id{21};
-    String name{"SomeName"};
+    godot::String name{"SomeName"};
     float length{21.21f};
-    Dictionary meta{};
+    godot::Dictionary meta{};
 
     // Default constructor is required by the ECS.
     Data() = default;
 
-    /**
-     * Required for:
-     * - Translating C++ ECS components to editor-compatible variants.
-     * - Resource wrapper components.
-     *
-     * Descriptor used by the ECS to expose this component to the Godot editor.
-     * It defines how fields are interpreted, serialized, and edited.
-     */
-    static const auto& descriptor() {
-        static const C_Descriptor descriptor{
-            // "ComponentName", // Defaults to an empty string if not explicitly specified.
-            // When registered via a resource, this name is used directly. If it is empty, the name
-            // is taken from GD_ECS_COMPONENT, for example GD_ECS_COMPONENT(ECS, C_Data, Data)
-            // assigns the name "Data".
-
-            // Field with explicit PropertyInfo and setter and getter.
-            C_Field{&Data::id, PropertyInfo(Variant::Type::INT, "id"), "set_id", "get_id"},
-
-            // Field using a simplified constructor with Variant type.
-            C_Field{&Data::name, Variant::Type::STRING, "name", "set_name", "get_name"},
-
-            // Field with:
-            // - PropertyInfo
-            // - "set_length"
-            // - "get_length"
-            C_Field{&Data::length, PropertyInfo(Variant::Type::FLOAT, "length")},
-
-            // Field with:
-            // - PropertyInfo(Variant::Type::DICTIONARY, "meta")
-            // - "set_meta"
-            // - "get_meta"
-            C_Field{&Data::meta, Variant::Type::DICTIONARY, "meta"}
-        };
-
-        return descriptor;
-    }
-
-    /**
-     * Required for:
-     * - Resource wrapper components.
-     * - Default components of entities.
-     *
-     * This function is functionally equivalent to:
-     * GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECS, Data)
-     */
-    static void emplace_or_replace(Node&/* p_entity_node */, entt::entity &p_entity, Data &p_data) {
-        auto &reg = ECS::registry();
-        reg.emplace_or_replace<Data>(p_entity, p_data);
-    }
+    GD_ECS_COMPONENT_IMPL(ECS, Data, "Data",
+        godot::C_Field{&Data::id,     godot::Variant::Type::INT,        "id"},
+        godot::C_Field{&Data::name,   godot::Variant::Type::STRING,     "name"},
+        godot::C_Field{&Data::length, godot::Variant::Type::FLOAT,      "length"},
+        godot::C_Field{&Data::meta,   godot::Variant::Type::DICTIONARY, "meta"}
+    )
 };
 
 /**
@@ -115,6 +71,82 @@ GD_ECS_COMPONENT(ECS, C_Data, Data)
 
 
 //==================================================================================================
+// Component: DataExtended
+//==================================================================================================
+
+// A component that stores basic example data.
+struct DataExtended {
+    int id{21};
+    String name{"SomeName"};
+    float length{21.21f};
+    Dictionary meta{};
+
+    // Default constructor is required by the ECS.
+    DataExtended() = default;
+
+    /**
+     * Required for:
+     * - Translating C++ ECS components to editor-compatible variants.
+     * - Resource wrapper components.
+     *
+     * This function is functionally equivalent to:
+     * GD_ECS_COMPONENT_DESCRIPTOR_IMPL("DataExtended",
+     *     godot::C_Field{&DataExtended::id,     godot::Variant::Type::INT,        "id"},
+     *     godot::C_Field{&DataExtended::name,   godot::Variant::Type::STRING,     "name"},
+     *     godot::C_Field{&DataExtended::length, godot::Variant::Type::FLOAT,      "length"},
+     *     godot::C_Field{&DataExtended::meta,   godot::Variant::Type::DICTIONARY, "meta"}
+     * )
+     */
+    static const auto& descriptor() {
+        static const C_Descriptor descriptor{
+            // ComponentName
+            "DataExtended",
+
+            // Field with explicit PropertyInfo and setter and getter.
+            C_Field{&DataExtended::id, PropertyInfo(Variant::Type::INT, "id"), "set_id", "get_id"},
+
+            // Field using a simplified constructor with Variant type.
+            C_Field{&DataExtended::name, Variant::Type::STRING, "name", "set_name", "get_name"},
+
+            // Field with:
+            // - PropertyInfo
+            // - "set_length"
+            // - "get_length"
+            C_Field{&DataExtended::length, PropertyInfo(Variant::Type::FLOAT, "length")},
+
+            // Field with:
+            // - PropertyInfo(Variant::Type::DICTIONARY, "meta")
+            // - "set_meta"
+            // - "get_meta"
+            C_Field{&DataExtended::meta, Variant::Type::DICTIONARY, "meta"}
+        };
+
+        return descriptor;
+    }
+
+    /**
+     * Required for:
+     * - Resource wrapper components.
+     * - Default components of entities.
+     *
+     * This function is functionally equivalent to:
+     * GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECS, DataExtended)
+     */
+    static void emplace_or_replace(
+        Node &/* p_entity_node */,
+        entt::entity &p_entity,
+        DataExtended &p_data
+    ) {
+        auto &reg = ECS::registry();
+        reg.emplace_or_replace<DataExtended>(p_entity, p_data);
+    }
+};
+
+GD_ECS_COMPONENT(ECS, C_DataExtended, DataExtended)
+
+
+
+//==================================================================================================
 // Component: Empty
 //==================================================================================================
 
@@ -127,13 +159,10 @@ struct Empty {
     Empty() = default;
 
     // Generates an empty component descriptor and a default emplace_or_replace implementation.
-    GD_ECS_EMPTY_COMPONENT_IMPL(ECS, Empty)
-
-    // Alternative with a component name.
-    //GD_ECS_EMPTY_COMPONENT_IMPL(ECS, Empty, "ComponentName")
+    GD_ECS_EMPTY_COMPONENT_IMPL(ECS, Empty, "Empty")
 
     // The macros above use these sub-macros:
-    //GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, __VA_ARGS__)
+    //GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME)
     //GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME)
 };
 
@@ -168,11 +197,12 @@ inline void register_types() {
 
     // Register components and component resources.
     C_Data::register_types();
+    C_DataExtended::register_types();
     C_Empty::register_types();
 
     // If a component does not need to be exposed as a Resource, it can be registered directly
     // instead.
-    //ECS::register_type<Data>("ComponentName");
+    //ECS::register_type<Data>();
     // This is internally handled by C_Data::register_types().
 
     // The advantage of exposing a component as a Godot Resource is that it can be edited in a type
@@ -183,7 +213,7 @@ inline void register_types() {
     // This approach is more flexible, but it loses type safety and editor support.
     //
     // Components that are not intended for editor usage can still benefit from being registered via
-    // ECS::register_type<Data>("ComponentName").
+    // ECS::register_type<Data>().
     //
     // Even though they are not exposed as Resources, this registration allows them to appear in
     // debug builds inside the remote inspector view for entities. This makes it possible to inspect

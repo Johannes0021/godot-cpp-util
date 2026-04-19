@@ -148,12 +148,6 @@ struct C_Descriptor final {
 
 
 
-    C_Descriptor(const C_Field<StructType, Ts> ...p_fields)
-        : fields(p_fields...)
-    {}
-
-
-
     template <std::size_t I>
     void set(StructType& p_instance, const auto &p_value) const {
         auto &field = std::get<I>(fields);
@@ -392,19 +386,45 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
  * Generates an empty component descriptor.
  *
  * struct Empty {
- *     // The component name defaults to an empty string unless explicitly specified.
- *     // When registered via a resource, this name is used directly. If it is empty, the name is
- *     // taken from GD_ECS_COMPONENT, for example GD_ECS_COMPONENT(ECS, C_Empty, Empty) assigns the
- *     // name "Empty".
- *     GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(Empty)
- *
- *     // Alternative with a custom component name.
- *     //GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(Empty, "ComponentName")
+ *     GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(Empty, "ComponentName")
  * };
  */
-#define GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, ...)                            \
+#define GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME)              \
 static const auto& descriptor() {                                                                  \
-    static godot::C_Descriptor<ECS_COMPONENT_NAME> descriptor{__VA_ARGS__};                        \
+    static godot::C_Descriptor<ECS_COMPONENT_NAME> descriptor{C_DESCRIPTOR_NAME};                  \
+    return descriptor;                                                                             \
+}
+
+
+
+//==================================================================================================
+// GD_ECS_COMPONENT_DESCRIPTOR_IMPL
+//==================================================================================================
+
+/**
+ * Generates an empty component descriptor.
+ *
+ * struct Data {
+ *     int id{21};
+ *     godot::String name{"SomeName"};
+ *     float length{21.21f};
+ *     godot::Dictionary meta{};
+ *
+ *     GD_ECS_COMPONENT_DESCRIPTOR_IMPL("DataComponentName",
+ *         godot::C_Field{&Data::id,     godot::Variant::Type::INT,        "id"},
+ *         godot::C_Field{&Data::name,   godot::Variant::Type::STRING,     "name"},
+ *         godot::C_Field{&Data::length, godot::Variant::Type::FLOAT,      "length"},
+ *         godot::C_Field{&Data::meta,   godot::Variant::Type::DICTIONARY, "meta"}
+ *     )
+ * };
+ */
+#define GD_ECS_COMPONENT_DESCRIPTOR_IMPL(C_DESCRIPTOR_NAME, ...)                                   \
+static const auto& descriptor() {                                                                  \
+    static godot::C_Descriptor descriptor{                                                         \
+        C_DESCRIPTOR_NAME,                                                                         \
+        __VA_ARGS__                                                                                \
+    };                                                                                             \
+                                                                                                   \
     return descriptor;                                                                             \
 }
 
@@ -449,18 +469,42 @@ static void emplace_or_replace(                                                 
  * using ECSType = godot::ECS;
  *
  * struct Empty {
- *     // The component name defaults to an empty string unless explicitly specified.
- *     // When registered via a resource, this name is used directly. If it is empty, the name is
- *     // taken from GD_ECS_COMPONENT, for example GD_ECS_COMPONENT(ECS, C_Empty, Empty) assigns the
- *     // name "Empty".
- *     GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty)
- *
- *     // Alternative with a custom component name.
- *     //GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty, "ComponentName")
+ *     GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty, "ComponentName")
  * };
  */
-#define GD_ECS_EMPTY_COMPONENT_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME, ...)                \
-GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, __VA_ARGS__)                            \
+#define GD_ECS_EMPTY_COMPONENT_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME)  \
+GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME)                      \
+GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME)
+
+
+
+//==================================================================================================
+// GD_ECS_COMPONENT_IMPL
+//==================================================================================================
+
+/**
+ * Generates an empty component descriptor and a default emplace_or_replace implementation.
+ *
+ * #include "godot_cpp_util/ecs/ecs.hpp"
+ *
+ * using ECSType = godot::ECS;
+ *
+ * struct Data {
+ *     int id{21};
+ *     godot::String name{"SomeName"};
+ *     float length{21.21f};
+ *     godot::Dictionary meta{};
+ *
+ *     GD_ECS_COMPONENT_IMPL(ECSType, Data, "ComponentName",
+ *         godot::C_Field{&Data::id,     godot::Variant::Type::INT,        "id"},
+ *         godot::C_Field{&Data::name,   godot::Variant::Type::STRING,     "name"},
+ *         godot::C_Field{&Data::length, godot::Variant::Type::FLOAT,      "length"},
+ *         godot::C_Field{&Data::meta,   godot::Variant::Type::DICTIONARY, "meta"}
+ *     )
+ * };
+ */
+#define GD_ECS_COMPONENT_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, ...)   \
+GD_ECS_COMPONENT_DESCRIPTOR_IMPL(C_DESCRIPTOR_NAME, __VA_ARGS__)                                   \
 GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME)
 
 
@@ -481,72 +525,12 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
  *     float length{21.21f};
  *     godot::Dictionary meta{};
  *
- *     // Default constructor is required by the ECS.
- *     Data() = default;
- *
- *     // Required for:
- *     // - Translating C++ ECS components to editor-compatible variants.
- *     // - Resource wrapper components.
- *     //
- *     // Descriptor used by the ECS to expose this component to the Godot editor.
- *     // It defines how fields are interpreted, serialized, and edited.
- *     static const auto& descriptor() {
- *         static const godot::C_Descriptor descriptor{
- *             // "ComponentName", // Defaults to an empty string if not explicitly specified.
- *             // When registered via a resource, this name is used directly. If it is empty, the
- *             // name is taken from GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE, for example
- *             // GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(ECSType, C_Data, Data, ...)
- *             // assigns the name "Data".
- *
- *             // Field with explicit PropertyInfo and setter and getter.
- *             godot::C_Field{
- *                 &Data::id,
- *                 godot::PropertyInfo(godot::Variant::Type::INT, "id"),
- *                 "set_id",
- *                 "get_id"
- *              },
- *
- *             // Field using a simplified constructor with Variant type.
- *             godot::C_Field{
- *                 &Data::name,
- *                 godot::Variant::Type::STRING, "name",
- *                 "set_name",
- *                 "get_name"
- *             },
- *
- *             // Field with:
- *             // - PropertyInfo
- *             // - "set_length"
- *             // - "get_length"
- *             godot::C_Field{
- *                 &Data::length,
- *                 godot::PropertyInfo(godot::Variant::Type::FLOAT, "length")
- *             },
- *
- *             // Field with:
- *             // - PropertyInfo(Variant::Type::DICTIONARY, "meta")
- *             // - "set_meta"
- *             // - "get_meta"
- *             godot::C_Field{&Data::meta, godot::Variant::Type::DICTIONARY, "meta"}
- *         };
- *
- *         return descriptor;
- *     }
- *
- *     // Required for:
- *     // - Resource wrapper components.
- *     // - Default components of entities.
- *     //
- *     // This function is functionally equivalent to:
- *     // GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECSType, Data)
- *     static void emplace_or_replace(
- *         [[maybe_unused]] godot::Node &p_entity_node,
- *         ECSType::RegistryType::entity_type &p_entity,
- *         Data &p_data
- *     ) {
- *         auto &reg = ECSType::registry();
- *         reg.emplace_or_replace<Data>(p_entity, p_data);
- *     }
+ *     GD_ECS_COMPONENT_IMPL(ECSType, Data, "ComponentName",
+ *         godot::C_Field{&Data::id,     godot::Variant::Type::INT,        "id"},
+ *         godot::C_Field{&Data::name,   godot::Variant::Type::STRING,     "name"},
+ *         godot::C_Field{&Data::length, godot::Variant::Type::FLOAT,      "length"},
+ *         godot::C_Field{&Data::meta,   godot::Variant::Type::DICTIONARY, "meta"}
+ *     )
  * };
  *
  * // Defines a Resource wrapper for the Data component.
@@ -592,7 +576,7 @@ class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {             
         "\n"                                                                                       \
         "    static const auto& descriptor() {\n"                                                  \
         "        static const godot::C_Descriptor descriptor{\n"                                   \
-        "            //\"ComponentName\",\n"                                                       \
+        "            \"" #ECS_COMPONENT_NAME "ComponentName\",\n"                                  \
         "            godot::C_Field{&"                                                             \
                          #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"},\n"  \
         "        };\n"                                                                             \
@@ -601,7 +585,7 @@ class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {             
         "    }\n"                                                                                  \
         "\n"                                                                                       \
         "    static void emplace_or_replace(\n"                                                    \
-        "        godot::Node &p_entity_node,\n"                                                    \
+        "        godot::Node &/* p_entity_node */,\n"                                              \
         "        " #GD_ECS_SINGLETON_TYPE "::RegistryType::entity_type &p_entity,\n"               \
         "        " #ECS_COMPONENT_NAME " &p_data\n"                                                \
         "    ) {\n"                                                                                \
@@ -630,14 +614,7 @@ public:                                                                         
                                                                                                    \
     static void register_types() {                                                                 \
         GDREGISTER_RUNTIME_CLASS(GD_ECS_COMPONENT_NAME);                                           \
-                                                                                                   \
-        auto &descriptor = ECS_COMPONENT_NAME::descriptor();                                       \
-        if (descriptor.name.is_empty()) {                                                          \
-            GD_ECS_SINGLETON_TYPE::register_type<ECS_COMPONENT_NAME>(#ECS_COMPONENT_NAME);         \
-        }                                                                                          \
-        else {                                                                                     \
-            GD_ECS_SINGLETON_TYPE::register_type<ECS_COMPONENT_NAME>(descriptor.name);             \
-        }                                                                                          \
+        GD_ECS_SINGLETON_TYPE::register_type<ECS_COMPONENT_NAME>();                                \
     }                                                                                              \
                                                                                                    \
                                                                                                    \

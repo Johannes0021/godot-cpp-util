@@ -474,26 +474,30 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
     template<typename T>                                                                           \
-    static void register_type(const godot::StringName &p_component) {                              \
+    requires godot::gd_ecs_has_component_descriptor<T>                                             \
+    static void register_type() {                                                                  \
         Entry entry{};                                                                             \
-        register_type_and_entry<T>(p_component, entry);                                            \
+        register_type_with_entry<T>(entry);                                                        \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
     template<typename T>                                                                           \
-    static void register_type_and_entry(const godot::StringName &p_component, Entry& p_entry) {    \
+    requires godot::gd_ecs_has_component_descriptor<T>                                             \
+    static void register_type_with_entry(Entry& p_entry) {                                         \
         static ComponentIndex component_index = component_names().size();                          \
+                                                                                                   \
+        auto &descriptor = T::descriptor();                                                        \
                                                                                                    \
         p_entry.init_uninit<T>(component_index);                                                   \
                                                                                                    \
-        component_name_to_entry_mut()[p_component] = p_entry;                                      \
+        component_name_to_entry_mut()[descriptor.name] = p_entry;                                  \
                                                                                                    \
         if (component_index < component_names().size()) {                                          \
-            component_names_mut()[component_index] = p_component;                                  \
+            component_names_mut()[component_index] = descriptor.name;                              \
         }                                                                                          \
         else {                                                                                     \
-            component_names_mut().push_back(p_component);                                          \
+            component_names_mut().push_back(descriptor.name);                                      \
         }                                                                                          \
     }                                                                                              \
                                                                                                    \

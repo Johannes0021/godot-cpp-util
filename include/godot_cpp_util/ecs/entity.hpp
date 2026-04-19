@@ -401,7 +401,7 @@ private:                                                                        
             "    godot::String example{\"default value\"};\n"                                      \
             "\n"                                                                                   \
             "    static void emplace_or_replace(\n"                                                \
-            "        godot::Node &p_entity_node,\n"                                                \
+            "        godot::Node &/* p_entity_node */,\n"                                          \
             "        " #GD_ECS_SINGLETON_TYPE "::RegistryType::entity_type &p_entity,\n"           \
             "        ComponentType &p_data\n"                                                      \
             "    ) {\n"                                                                            \
