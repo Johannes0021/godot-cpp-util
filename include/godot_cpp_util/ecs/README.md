@@ -91,7 +91,7 @@ struct Data {
      * - Default components of entities.
      *
      * This function is functionally equivalent to:
-     * GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(Data)
+     * GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECS, Data)
      */
     static void emplace_or_replace(Node&/* p_entity_node */, entt::entity &p_entity, Data &p_data) {
         auto &reg = ECS::registry();
@@ -127,14 +127,14 @@ struct Empty {
     Empty() = default;
 
     // Generates an empty component descriptor and a default emplace_or_replace implementation.
-    GD_ECS_EMPTY_COMPONENT_IMPL(Empty)
+    GD_ECS_EMPTY_COMPONENT_IMPL(ECS, Empty)
 
     // Alternative with a component name.
-    //GD_ECS_EMPTY_COMPONENT_IMPL(Empty, "ComponentName")
+    //GD_ECS_EMPTY_COMPONENT_IMPL(ECS, Empty, "ComponentName")
 
     // The macros above use these sub-macros:
     //GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, __VA_ARGS__)
-    //GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECS_COMPONENT_NAME)
+    //GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME)
 };
 
 // Resource wrapper for the Empty component.

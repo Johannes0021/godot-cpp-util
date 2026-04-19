@@ -118,12 +118,39 @@ inline bool gd_ecs_is_valid_component_name_print_error(const godot::Variant& p_v
  * #include "godot_cpp_util/ecs/ecs.hpp"
  *
  * using ECSType = godot::ECS;
+ *
  * GD_ECS_ENTITY(ECSType, E_Node, godot::Node)
  *
- * //// Do not forget to expose the new entity to Godot:
+ * // A component that stores basic example data.
+ * struct Data {
+ *     godot::String name{"SomeName"};
+ *
+ *     // Default constructor is required by the ECS.
+ *     Data() = default;
+ *
+ *     // Required for:
+ *     // - Resource wrapper components.
+ *     // - Default components of entities.
+ *     //
+ *     // This function is functionally equivalent to:
+ *     // GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECSType, Data)
+ *     static void emplace_or_replace(
+ *         [[maybe_unused]] godot::Node &p_entity_node,
+ *         ECSType::RegistryType::entity_type &p_entity,
+ *         Data &p_data
+ *     ) {
+ *         auto &reg = ECSType::registry();
+ *         reg.emplace_or_replace<Data>(p_entity, p_data);
+ *     }
+ * };
+ *
+ * GD_ECS_ENTITY(ECSType, E_NodeWithDefaults, godot::Node, Data)
+ *
+ * //// Do not forget to expose the new entities to Godot:
  * //ECSType::register_types();
  * //// ...
  * //E_Node::register_types();
+ * //E_NodeWithDefaults::register_types();
  */
 #define GD_ECS_ENTITY(GD_ECS_SINGLETON_TYPE, GD_ECS_ENTITY_NAME, GD_ECS_ENTITY_PARENT_TYPE, ...)   \
 class GD_ECS_ENTITY_NAME : public GD_ECS_ENTITY_PARENT_TYPE {                                      \
