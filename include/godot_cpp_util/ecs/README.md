@@ -48,8 +48,14 @@ struct Data {
     // Default constructor is required by the ECS.
     Data() = default;
 
-    // Descriptor used by the ECS to expose this component to the Godot editor.
-    // It defines how fields are interpreted, serialized, and edited.
+    /**
+     * Required for:
+     * - Translating C++ ECS components to editor-compatible variants.
+     * - Resource wrapper components.
+     *
+     * Descriptor used by the ECS to expose this component to the Godot editor.
+     * It defines how fields are interpreted, serialized, and edited.
+     */
     static const auto& descriptor() {
         static const auto descriptor = C_Descriptor{
             // "ComponentName", // Defaults to an empty string if not explicitly specified.
@@ -78,6 +84,19 @@ struct Data {
 
         return descriptor;
     }
+
+    /**
+     * Required for:
+     * - Resource wrapper components.
+     * - Default components of entities.
+     *
+     * This function is functionally equivalent to:
+     * GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(Data)
+     */
+    static void emplace_or_replace(Node&/* p_entity_node */, entt::entity &p_entity, Data &p_data) {
+        auto &reg = ECS::registry();
+        reg.emplace_or_replace<Data>(p_entity, p_data);
+    }
 };
 
 /**
@@ -89,6 +108,9 @@ struct Data {
  * parent component or how the component is inserted.
  */
 GD_ECS_COMPONENT(ECS, C_Data, Data)
+//GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(ECS, C_Data, Data, C_Component, C_SuperCallPolicy::Before)
+//GD_ECS_COMPONENT_WITH_PARENT(ECS, C_Data, Data, C_Component)
+//GD_ECS_COMPONENT_WITH_POLICY(ECS, C_Data, Data, C_SuperCallPolicy::After)
 
 
 
@@ -96,42 +118,39 @@ GD_ECS_COMPONENT(ECS, C_Data, Data)
 // Component: Empty
 //==================================================================================================
 
-// A component with no data.
-// Useful as a marker or tag component.
+/**
+ * A component with no data.
+ * Useful as a marker or tag component.
+ */
 struct Empty {
     // Default constructor is required by the ECS.
     Empty() = default;
 
-    // Generates an empty component descriptor.
-    // The component name defaults to an empty string unless explicitly specified.
-    // When registered via a resource, this name is used directly. If it is empty, the name is taken
-    // from GD_ECS_COMPONENT, for example GD_ECS_COMPONENT(ECS, C_Empty, Empty) assigns the name
-    // "Empty".
-    GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty)
+    // Generates an empty component descriptor and a default emplace_or_replace implementation.
+    GD_ECS_EMPTY_COMPONENT_IMPL(Empty)
 
-    // Alternative with a custom component name.
-    //GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty, "ComponentName")
+    // Alternative with a component name.
+    //GD_ECS_EMPTY_COMPONENT_IMPL(Empty, "ComponentName")
+
+    // The macros above use these sub-macros:
+    //GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, __VA_ARGS__)
+    //GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECS_COMPONENT_NAME)
 };
 
+// Resource wrapper for the Empty component.
+GD_ECS_COMPONENT(ECS, C_Empty, Empty)
+
+
+
+//==================================================================================================
+// Entity: E_NodeWithDefaults
+//==================================================================================================
+
 /**
- * Resource wrapper for the Empty component.
- *
- * There are also additional component resource wrapper macros that offer more control over the
- * parent component or how the component is inserted.
+ * Defines an ECS entity named E_NodeWithDefaults that inherits from Godot's Node and inserts
+ * default components.
  */
-GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(
-    ECS, C_Empty, ECS::ComponentType, Empty,
-    // void emplace_or_replace(
-    //     godot::Node &p_entity_node,
-    //     ECS::RegistryType::entity_type &p_entity
-    // )
-    {
-        // Access the Empty component via the `data` member.
-        // Access the parent component data via `ParentType::data`, if available.
-        auto &reg = ECS::registry();
-        reg.emplace_or_replace<Empty>(p_entity);
-    }
-)
+GD_ECS_ENTITY(ECS, E_NodeWithDefaults, Node, Data, Empty)
 
 
 
@@ -145,13 +164,14 @@ inline void register_types() {
 
     // Register entities.
     E_Node::register_types();
+    E_NodeWithDefaults::register_types();
 
     // Register components and component resources.
     C_Data::register_types();
     C_Empty::register_types();
 
-    // If a component does not need to be exposed as a Resource,
-    // it can be registered directly instead.
+    // If a component does not need to be exposed as a Resource, it can be registered directly
+    // instead.
     //ECS::register_type<Data>("ComponentName");
     // This is internally handled by C_Data::register_types().
 

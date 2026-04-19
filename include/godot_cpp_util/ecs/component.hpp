@@ -329,6 +329,30 @@ requires { T::descriptor(); }
 
 
 //==================================================================================================
+// C_SuperCallPolicy
+//==================================================================================================
+
+enum class C_SuperCallPolicy {
+    Never,
+    Before,
+    After
+};
+
+
+
+//==================================================================================================
+// gd_ecs_has_emplace_or_replace
+//==================================================================================================
+
+template <typename NodeType, typename EntityType, typename T>
+concept gd_ecs_has_emplace_or_replace =
+requires (NodeType &n, EntityType &e, T &t) {
+    { T::emplace_or_replace(n, e, t) } -> std::same_as<void>;
+};
+
+
+
+//==================================================================================================
 // Helpers
 //==================================================================================================
 
@@ -346,12 +370,11 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
 
 template <typename RegistryType, typename EntityType, typename T>
 requires (!std::is_empty_v<T>)
-         && gd_ecs_has_component_descriptor<T>
 void gd_ecs_emplace_or_replace_maybe_empty_type(
     RegistryType &p_registry,
     const EntityType &p_entity,
-    const T &p_data)
-{
+    const T &p_data
+) {
     p_registry.template emplace_or_replace<T>(p_entity, p_data);
 }
 
@@ -362,7 +385,7 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
 
 
 //==================================================================================================
-// GD_ECS_EMPTY_COMPONENT_DESCRIPTOR
+// GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL
 //==================================================================================================
 
 /**
@@ -373,17 +396,60 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
  *     // When registered via a resource, this name is used directly. If it is empty, the name is
  *     // taken from GD_ECS_COMPONENT, for example GD_ECS_COMPONENT(ECS, C_Empty, Empty) assigns the
  *     // name "Empty".
- *     GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty)
+ *     GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(Empty)
  *
  *     // Alternative with a custom component name.
- *     //GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty, "ComponentName")
+ *     //GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(Empty, "ComponentName")
  * };
  */
-#define GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(ECS_COMPONENT_NAME, ...)                                 \
+#define GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, ...)                            \
 static const auto& descriptor() {                                                                  \
     static godot::C_Descriptor<ECS_COMPONENT_NAME> descriptor{__VA_ARGS__};                        \
     return descriptor;                                                                             \
-}                                                                                                  \
+}
+
+
+
+//==================================================================================================
+// GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL
+//==================================================================================================
+
+/**
+ * Generates a default emplace_or_replace implementation.
+ *
+ * struct ComponentType {
+ *     GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ComponentType)
+ * };
+ */
+#define GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECS_COMPONENT_NAME)                               \
+static void emplace_or_replace(Node&, entt::entity &p_entity, ECS_COMPONENT_NAME &p_data) {        \
+    auto &reg = ECS::registry();                                                                   \
+    godot::gd_ecs_emplace_or_replace_maybe_empty_type(reg, p_entity, p_data);                      \
+}
+
+
+
+//==================================================================================================
+// GD_ECS_EMPTY_COMPONENT_IMPL
+//==================================================================================================
+
+/**
+ * Generates an empty component descriptor and a default emplace_or_replace implementation.
+ *
+ * struct Empty {
+ *     // The component name defaults to an empty string unless explicitly specified.
+ *     // When registered via a resource, this name is used directly. If it is empty, the name is
+ *     // taken from GD_ECS_COMPONENT, for example GD_ECS_COMPONENT(ECS, C_Empty, Empty) assigns the
+ *     // name "Empty".
+ *     GD_ECS_EMPTY_COMPONENT_IMPL(Empty)
+ *
+ *     // Alternative with a custom component name.
+ *     //GD_ECS_EMPTY_COMPONENT_IMPL(Empty, "ComponentName")
+ * };
+ */
+#define GD_ECS_EMPTY_COMPONENT_IMPL(ECS_COMPONENT_NAME, ...)                                       \
+GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, __VA_ARGS__)                            \
+GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECS_COMPONENT_NAME)
 
 
 
@@ -404,6 +470,10 @@ static const auto& descriptor() {                                               
  *     // Default constructor is required by the ECS.
  *     Data() = default;
  *
+ *     // Required for:
+ *     // - Translating C++ ECS components to editor-compatible variants.
+ *     // - Resource wrapper components.
+ *     //
  *     // Descriptor used by the ECS to expose this component to the Godot editor.
  *     // It defines how fields are interpreted, serialized, and edited.
  *     static const auto& descriptor() {
@@ -448,23 +518,30 @@ static const auto& descriptor() {                                               
  *
  *         return descriptor;
  *     }
+ *
+ *     // Required for:
+ *     // - Resource wrapper components.
+ *     // - Default components of entities.
+ *     //
+ *     // This function is functionally equivalent to:
+ *     // GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(Data)
+ *     static void emplace_or_replace(
+ *         [[maybe_unused]] godot::Node &p_entity_node,
+ *         ECSType::RegistryType::entity_type &p_entity,
+*          Data &p_data
+*      ) {
+ *         auto &reg = ECS::registry();
+ *         reg.emplace_or_replace<Data>(p_entity, p_data);
+ *     }
  * };
  *
  * // Defines a Resource wrapper for the Data component.
  * // This allows the component to be created, stored, and edited as a Godot Resource.
  * // Entities such as E_Node can add and manage this component themselves.
- * GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(
+ * GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(
  *     ECSType,
- *     C_Data, ECSType::ComponentType,
- *     Data,
- *     // void emplace_or_replace(
- *     //     godot::Node &p_entity_node,
- *     //     ECSType::RegistryType::entity_type &p_entity
- *     // )
- *     {
- *         auto &reg = ECSType::registry();
- *         reg.emplace_or_replace<Data>(p_entity, data);
- *     }
+ *     C_Data, Data, ECSType::ComponentType,
+ *     C_SuperCallPolicy::Never
  * )
  *
  * //// Do not forget to expose the new component to Godot:
@@ -472,21 +549,27 @@ static const auto& descriptor() {                                               
  * //// ...
  * //C_Data::register_types(); // This also calls ECS::register_type<Data>(...);
  */
-#define GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                           \
+#define GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                                   \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
     ECS_COMPONENT_NAME,                                                                            \
-    EMPLACE_OR_REPLACE_BODY                                                                        \
+    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
+    SUPER_CALL_POLICY                                                                              \
 )                                                                                                  \
 class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {                                \
     GDCLASS(GD_ECS_COMPONENT_NAME, GD_ECS_COMPONENT_PARENT_TYPE)                                   \
                                                                                                    \
     static_assert(                                                                                 \
-        godot::gd_ecs_has_component_descriptor<ECS_COMPONENT_NAME>,                                \
+        godot::gd_ecs_has_component_descriptor<ECS_COMPONENT_NAME>                                 \
+        && gd_ecs_has_emplace_or_replace<                                                          \
+            godot::Node,                                                                           \
+            GD_ECS_SINGLETON_TYPE::RegistryType::entity_type,                                      \
+            ECS_COMPONENT_NAME                                                                     \
+        >,                                                                                         \
         "\n"                                                                                       \
         "Concept violation summary:\n"                                                             \
-        #ECS_COMPONENT_NAME " is not a valid gd_ecs_has_component_descriptor component type.\n"    \
+        #ECS_COMPONENT_NAME " is not a valid gd_ecs_has_component_descriptor or "                  \
+        "gd_ecs_has_emplace_or_replace component type.\n"                                          \
         "\n"                                                                                       \
         "Expected interface:\n"                                                                    \
         "\n"                                                                                       \
@@ -501,6 +584,15 @@ class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {             
         "        };\n"                                                                             \
         "\n"                                                                                       \
         "        return descriptor;\n"                                                             \
+        "    }\n"                                                                                  \
+        "\n"                                                                                       \
+        "    static void emplace_or_replace(\n"                                                    \
+        "        godot::Node &p_entity_node,\n"                                                    \
+        "        " #GD_ECS_SINGLETON_TYPE "::RegistryType::entity_type &p_entity,\n"               \
+        "        " #ECS_COMPONENT_NAME " &p_data\n"                                                \
+        "    ) {\n"                                                                                \
+        "        auto &reg = " #GD_ECS_SINGLETON_TYPE "::registry();\n"                            \
+        "        reg.emplace_or_replace<" #ECS_COMPONENT_NAME ">(p_entity, p_data);\n"             \
         "    }\n"                                                                                  \
         "};\n\n\n"                                                                                 \
     );                                                                                             \
@@ -557,17 +649,27 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
     virtual void emplace_or_replace(                                                               \
-        [[maybe_unused]] godot::Node &p_entity_node,                                               \
-        [[maybe_unused]] GD_ECS_SINGLETON_TYPE::RegistryType::entity_type &p_entity                \
+        godot::Node &p_entity_node,                                                                \
+        GD_ECS_SINGLETON_TYPE::RegistryType::entity_type &p_entity                                 \
     ) override {                                                                                   \
-        EMPLACE_OR_REPLACE_BODY                                                                    \
+        if constexpr (SUPER_CALL_POLICY == C_SuperCallPolicy::Before) {                            \
+            GD_ECS_COMPONENT_PARENT_TYPE::emplace_or_replace(p_entity_node, p_entity);             \
+        }                                                                                          \
+                                                                                                   \
+        ECS_COMPONENT_NAME::emplace_or_replace(p_entity_node, p_entity, data);                     \
+                                                                                                   \
+        if constexpr (SUPER_CALL_POLICY == C_SuperCallPolicy::After) {                             \
+            GD_ECS_COMPONENT_PARENT_TYPE::emplace_or_replace(p_entity_node, p_entity);             \
+        }                                                                                          \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
 protected:                                                                                         \
     static void _bind_methods() {                                                                  \
-        bind_all(std::make_index_sequence<std::tuple_size_v<DescriptorType::FieldTypeTuple>>{});   \
+        bind_all(                                                                                  \
+            std::make_index_sequence<std::tuple_size_v<typename DescriptorType::FieldTypeTuple>>{} \
+        );                                                                                         \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
@@ -575,7 +677,8 @@ protected:                                                                      
 private:                                                                                           \
     template <std::size_t I>                                                                       \
     static void bind_field() {                                                                     \
-        using FieldType = std::tuple_element_t<I, DescriptorType::FieldTypeTuple>::FieldType;      \
+        using FieldType =                                                                          \
+            std::tuple_element_t<I, typename DescriptorType::FieldTypeTuple>::FieldType;           \
                                                                                                    \
         auto &descriptor = ECS_COMPONENT_NAME::descriptor();                                       \
         auto &field = std::get<I>(descriptor.fields);                                              \
@@ -604,59 +707,15 @@ private:                                                                        
 
 
 //==================================================================================================
-// GD_ECS_COMPONENT_EMPLACE_OR_REPLACE
-//==================================================================================================
-
- /**
- * using ECSType = godot::ECS;
- *
- * struct Empty { GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty) };
- *
- * GD_ECS_COMPONENT_EMPLACE_OR_REPLACE(
- *     ECSType,
- *     C_Empty,
- *     Empty,
- *     // void emplace_or_replace(
- *     //     godot::Node &p_entity_node,
- *     //     ECSType::RegistryType::entity_type &p_entity
- *     // )
- *     {
- *         auto &reg = ECSType::registry();
- *         reg.emplace_or_replace<Empty>(p_entity);
- *     }
- * )
- *
- * //// Do not forget to expose the new component to Godot:
- * //ECSType::register_types();
- * //// ...
- * //C_Empty::register_types(); // This also calls ECS::register_type<Empty>(...);
- */
-#define GD_ECS_COMPONENT_EMPLACE_OR_REPLACE(                                                       \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    ECS_COMPONENT_NAME,                                                                            \
-    EMPLACE_OR_REPLACE_BODY                                                                        \
-)                                                                                                  \
-GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                                   \
-    GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
-    ECS_COMPONENT_NAME,                                                                            \
-    EMPLACE_OR_REPLACE_BODY                                                                        \
-)                                                                                                  \
-
-
-
-//==================================================================================================
 // GD_ECS_COMPONENT_WITH_PARENT
 //==================================================================================================
 
  /**
  * using ECSType = godot::ECS;
  *
- * struct Empty { GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty) };
+ * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(Empty) };
  *
- * GD_ECS_COMPONENT_WITH_PARENT(ECSType, C_Empty, ECSType::ComponentType, Empty)
+ * GD_ECS_COMPONENT_WITH_PARENT(ECSType, C_Empty, Empty, ECSType::ComponentType)
  *
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
@@ -666,19 +725,48 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
 #define GD_ECS_COMPONENT_WITH_PARENT(                                                              \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
-    ECS_COMPONENT_NAME                                                                             \
+    ECS_COMPONENT_NAME,                                                                            \
+    GD_ECS_COMPONENT_PARENT_TYPE                                                                   \
 )                                                                                                  \
-GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                                   \
+GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                                           \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
     ECS_COMPONENT_NAME,                                                                            \
-    {                                                                                              \
-        auto &reg = GD_ECS_SINGLETON_TYPE::registry();                                             \
-        godot::gd_ecs_emplace_or_replace_maybe_empty_type(reg, p_entity, data);                    \
-    }                                                                                              \
+    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
+    C_SuperCallPolicy::Never                                                                       \
+)
+
+
+
+//==================================================================================================
+// GD_ECS_COMPONENT_WITH_POLICY
+//==================================================================================================
+
+ /**
+ * using ECSType = godot::ECS;
+ *
+ * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(Empty) };
+ *
+ * GD_ECS_COMPONENT_WITH_PARENT(ECSType, C_Empty, Empty, C_SuperCallPolicy::After)
+ *
+ * //// Do not forget to expose the new component to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //C_Empty::register_types(); // This also calls ECS::register_type<Empty>(...);
+ */
+#define GD_ECS_COMPONENT_WITH_POLICY(                                                              \
+    GD_ECS_SINGLETON_TYPE,                                                                         \
+    GD_ECS_COMPONENT_NAME,                                                                         \
+    ECS_COMPONENT_NAME,                                                                            \
+    SUPER_CALL_POLICY                                                                              \
 )                                                                                                  \
+GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                                           \
+    GD_ECS_SINGLETON_TYPE,                                                                         \
+    GD_ECS_COMPONENT_NAME,                                                                         \
+    ECS_COMPONENT_NAME,                                                                            \
+    GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
+    SUPER_CALL_POLICY                                                                              \
+)
 
 
 
@@ -689,7 +777,7 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
  /**
  * using ECSType = godot::ECS;
  *
- * struct Empty { GD_ECS_EMPTY_COMPONENT_DESCRIPTOR(Empty) };
+ * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(Empty) };
  *
  * GD_ECS_COMPONENT(ECSType, C_Empty, Empty)
  *
@@ -699,9 +787,10 @@ GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE(                                
  * //C_Empty::register_types(); // This also calls ECS::register_type<Empty>(...);
  */
 #define GD_ECS_COMPONENT(GD_ECS_SINGLETON_TYPE, GD_ECS_COMPONENT_NAME, ECS_COMPONENT_NAME)         \
-GD_ECS_COMPONENT_WITH_PARENT(                                                                      \
+GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                                           \
     GD_ECS_SINGLETON_TYPE,                                                                         \
     GD_ECS_COMPONENT_NAME,                                                                         \
+    ECS_COMPONENT_NAME,                                                                            \
     GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
-    ECS_COMPONENT_NAME                                                                             \
+    C_SuperCallPolicy::Never                                                                       \
 )

@@ -48,6 +48,7 @@
 
 #include "godot_cpp_util/core/string/static_string_name.hpp"
 
+#include "component.hpp"
 #include "signal_macros.hpp"
 
 
@@ -124,7 +125,7 @@ inline bool gd_ecs_is_valid_component_name_print_error(const godot::Variant& p_v
  * //// ...
  * //E_Node::register_types();
  */
-#define GD_ECS_ENTITY(GD_ECS_SINGLETON_NAME, GD_ECS_ENTITY_NAME, GD_ECS_ENTITY_PARENT_TYPE)        \
+#define GD_ECS_ENTITY(GD_ECS_SINGLETON_TYPE, GD_ECS_ENTITY_NAME, GD_ECS_ENTITY_PARENT_TYPE, ...)   \
 class GD_ECS_ENTITY_NAME : public GD_ECS_ENTITY_PARENT_TYPE {                                      \
     GDCLASS(GD_ECS_ENTITY_NAME, GD_ECS_ENTITY_PARENT_TYPE)                                         \
                                                                                                    \
@@ -146,7 +147,7 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
 private:                                                                                           \
-    GD_ECS_SINGLETON_NAME::RegistryType::entity_type m_entity{};                                   \
+    GD_ECS_SINGLETON_TYPE::RegistryType::entity_type m_entity{};                                   \
                                                                                                    \
                                                                                                    \
                                                                                                    \
@@ -158,14 +159,15 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
     GD_ECS_ENTITY_NAME() {                                                                         \
-        auto &reg = GD_ECS_SINGLETON_NAME::registry();                                             \
+        auto &reg = GD_ECS_SINGLETON_TYPE::registry();                                             \
         m_entity = reg.create();                                                                   \
+        emplace_or_replace_defaults<__VA_ARGS__>();                                                \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
     virtual ~GD_ECS_ENTITY_NAME() override {                                                       \
-        auto &reg = GD_ECS_SINGLETON_NAME::registry();                                             \
+        auto &reg = GD_ECS_SINGLETON_TYPE::registry();                                             \
         if(reg.valid(m_entity)) {                                                                  \
             reg.destroy(m_entity);                                                                 \
         }                                                                                          \
@@ -173,19 +175,19 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    GD_ECS_SINGLETON_NAME::RegistryType::entity_type& get_entity() {                               \
+    GD_ECS_SINGLETON_TYPE::RegistryType::entity_type& get_entity() {                               \
         return m_entity;                                                                           \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    const GD_ECS_SINGLETON_NAME::RegistryType::entity_type& get_entity() const {                   \
+    const GD_ECS_SINGLETON_TYPE::RegistryType::entity_type& get_entity() const {                   \
         return m_entity;                                                                           \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    void set_res_component(const godot::Ref<GD_ECS_SINGLETON_NAME::ComponentType> &p_component) {  \
+    void set_res_component(const godot::Ref<GD_ECS_SINGLETON_TYPE::ComponentType> &p_component) {  \
         if (p_component.is_valid()) {                                                              \
             p_component->emplace_or_replace(*this, m_entity);                                      \
         }                                                                                          \
@@ -202,7 +204,7 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
     void set_component(const godot::StringName &p_component, const godot::Variant& p_data) const { \
-        GD_ECS_SINGLETON_NAME::emplace_or_replace(m_entity, p_component, p_data);                  \
+        GD_ECS_SINGLETON_TYPE::emplace_or_replace(m_entity, p_component, p_data);                  \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
@@ -250,19 +252,19 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
     bool remove_component(const godot::StringName &p_component) const {                            \
-        return GD_ECS_SINGLETON_NAME::remove(m_entity, p_component);                               \
+        return GD_ECS_SINGLETON_TYPE::remove(m_entity, p_component);                               \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
     bool has_component(const godot::StringName &p_component) const {                               \
-        return GD_ECS_SINGLETON_NAME::has(m_entity, p_component);                                  \
+        return GD_ECS_SINGLETON_TYPE::has(m_entity, p_component);                                  \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
     godot::Variant get_component(const godot::StringName &p_component) const {                     \
-        return GD_ECS_SINGLETON_NAME::get(m_entity, p_component);                                  \
+        return GD_ECS_SINGLETON_TYPE::get(m_entity, p_component);                                  \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
@@ -270,9 +272,9 @@ public:                                                                         
     godot::Dictionary get_all_components_DEBUG_SLOW() const {                                      \
         godot::Dictionary components{};                                                            \
                                                                                                    \
-        for (auto &c_name : GD_ECS_SINGLETON_NAME::component_names()) {                            \
-            if (GD_ECS_SINGLETON_NAME::has(m_entity, c_name)) {                                    \
-                components[c_name] = GD_ECS_SINGLETON_NAME::get(m_entity, c_name);                 \
+        for (auto &c_name : GD_ECS_SINGLETON_TYPE::component_names()) {                            \
+            if (GD_ECS_SINGLETON_TYPE::has(m_entity, c_name)) {                                    \
+                components[c_name] = GD_ECS_SINGLETON_TYPE::get(m_entity, c_name);                 \
             }                                                                                      \
         }                                                                                          \
                                                                                                    \
@@ -325,7 +327,7 @@ protected:                                                                      
                 godot::Variant::ARRAY,                                                             \
                 "res_components",                                                                  \
                 godot::PROPERTY_HINT_RESOURCE_TYPE,                                                \
-                GD_ECS_SINGLETON_NAME::ComponentType::get_class_static()                           \
+                GD_ECS_SINGLETON_TYPE::ComponentType::get_class_static()                           \
             ),                                                                                     \
             "set_res_components",                                                                  \
             "get_empty_typed_array"                                                                \
@@ -353,6 +355,48 @@ protected:                                                                      
                                                                                                    \
                                                                                                    \
 private:                                                                                           \
+    template <typename T>                                                                          \
+    void emplace_or_replace_one_default() {                                                        \
+        static_assert(                                                                             \
+            godot::gd_ecs_has_emplace_or_replace<                                                  \
+                GD_ECS_ENTITY_NAME,                                                                \
+                GD_ECS_SINGLETON_TYPE::RegistryType::entity_type,                                  \
+                T                                                                                  \
+            >,                                                                                     \
+            "\n"                                                                                   \
+            "Concept violation summary:\n"                                                         \
+            "All default ComponentTypes must be a valid gd_ecs_has_emplace_or_replace component "  \
+            "type.\n"                                                                              \
+            "\n"                                                                                   \
+            "Expected interface:\n"                                                                \
+            "\n"                                                                                   \
+            "struct ComponentType {\n"                                                             \
+            "    godot::String example{\"default value\"};\n"                                      \
+            "\n"                                                                                   \
+            "    static void emplace_or_replace(\n"                                                \
+            "        godot::Node &p_entity_node,\n"                                                \
+            "        " #GD_ECS_SINGLETON_TYPE "::RegistryType::entity_type &p_entity,\n"           \
+            "        ComponentType &p_data\n"                                                      \
+            "    ) {\n"                                                                            \
+            "        auto &reg = " #GD_ECS_SINGLETON_TYPE "::registry();\n"                        \
+            "        reg.emplace_or_replace<ComponentType>(p_entity, p_data);\n"                   \
+            "    }\n"                                                                              \
+            "};\n\n\n"                                                                             \
+        );                                                                                         \
+                                                                                                   \
+        T data{};                                                                                  \
+        T::emplace_or_replace(*this, m_entity, data);                                              \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+    template <typename ...ComponentTypes>                                                          \
+    void emplace_or_replace_defaults() {                                                           \
+        (emplace_or_replace_one_default<ComponentTypes>(), ...);                                   \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
     godot::Array get_empty_typed_array() const {                                                   \
         return godot::Array{};                                                                     \
     }                                                                                              \
@@ -364,13 +408,13 @@ private:                                                                        
             switch (p_data.get_type()) {                                                           \
                 case godot::Variant::Type::STRING:                                                 \
                 case godot::Variant::Type::STRING_NAME: {                                          \
-                    GD_ECS_SINGLETON_NAME::emplace_or_replace(m_entity, p_data, godot::Variant{}); \
+                    GD_ECS_SINGLETON_TYPE::emplace_or_replace(m_entity, p_data, godot::Variant{}); \
                     break;                                                                         \
                 }                                                                                  \
                 case godot::Variant::Type::PACKED_STRING_ARRAY: {                                  \
                     godot::PackedStringArray to_add = p_data;                                      \
                     for (auto &c_name : to_add) {                                                  \
-                        GD_ECS_SINGLETON_NAME::emplace_or_replace(                                 \
+                        GD_ECS_SINGLETON_TYPE::emplace_or_replace(                                 \
                             m_entity,                                                              \
                             c_name,                                                                \
                             godot::Variant{}                                                       \
@@ -382,7 +426,7 @@ private:                                                                        
                     godot::Array to_add = p_data;                                                  \
                     for (auto &variant_c_name : to_add) {                                          \
                         if (gd_ecs_is_valid_component_name_print_error(variant_c_name)) {          \
-                            GD_ECS_SINGLETON_NAME::emplace_or_replace(                             \
+                            GD_ECS_SINGLETON_TYPE::emplace_or_replace(                             \
                                 m_entity,                                                          \
                                 variant_c_name,                                                    \
                                 godot::Variant{}                                                   \
@@ -411,7 +455,7 @@ private:                                                                        
                         switch (inner_data.get_type()) {                                           \
                             case godot::Variant::Type::STRING:                                     \
                             case godot::Variant::Type::STRING_NAME: {                              \
-                                GD_ECS_SINGLETON_NAME::emplace_or_replace(                         \
+                                GD_ECS_SINGLETON_TYPE::emplace_or_replace(                         \
                                     m_entity,                                                      \
                                     inner_c_name,                                                  \
                                     inner_data                                                     \
@@ -421,7 +465,7 @@ private:                                                                        
                             case godot::Variant::Type::PACKED_STRING_ARRAY: {                      \
                                 godot::PackedStringArray to_add = inner_data;                      \
                                 for (auto &c_name : to_add) {                                      \
-                                    GD_ECS_SINGLETON_NAME::emplace_or_replace(                     \
+                                    GD_ECS_SINGLETON_TYPE::emplace_or_replace(                     \
                                         m_entity,                                                  \
                                         c_name,                                                    \
                                         inner_data                                                 \
@@ -434,7 +478,7 @@ private:                                                                        
                                 for (auto &variant_c_name : to_add) {                              \
                                     if (gd_ecs_is_valid_component_name_print_error(variant_c_name))\
                                     {                                                              \
-                                        GD_ECS_SINGLETON_NAME::emplace_or_replace(                 \
+                                        GD_ECS_SINGLETON_TYPE::emplace_or_replace(                 \
                                             m_entity,                                              \
                                             variant_c_name,                                        \
                                             inner_data                                             \
@@ -477,13 +521,13 @@ private:                                                                        
             switch (p_data.get_type()) {                                                           \
                 case godot::Variant::Type::STRING:                                                 \
                 case godot::Variant::Type::STRING_NAME: {                                          \
-                    GD_ECS_SINGLETON_NAME::remove(m_entity, p_data);                               \
+                    GD_ECS_SINGLETON_TYPE::remove(m_entity, p_data);                               \
                     break;                                                                         \
                 }                                                                                  \
                 case godot::Variant::Type::PACKED_STRING_ARRAY: {                                  \
                     godot::PackedStringArray to_remove = p_data;                                   \
                     for (auto &c_name : to_remove) {                                               \
-                        GD_ECS_SINGLETON_NAME::remove(m_entity, c_name);                           \
+                        GD_ECS_SINGLETON_TYPE::remove(m_entity, c_name);                           \
                     }                                                                              \
                     break;                                                                         \
                 }                                                                                  \
@@ -491,7 +535,7 @@ private:                                                                        
                     godot::Array to_remove = p_data;                                               \
                     for (auto &variant_c_name : to_remove) {                                       \
                         if (gd_ecs_is_valid_component_name_print_error(variant_c_name)) {          \
-                            GD_ECS_SINGLETON_NAME::remove(m_entity, variant_c_name);               \
+                            GD_ECS_SINGLETON_TYPE::remove(m_entity, variant_c_name);               \
                         }                                                                          \
                         else {                                                                     \
                             ERR_PRINT(godot::vformat(                                              \
@@ -514,7 +558,7 @@ private:                                                                        
             }                                                                                      \
         }                                                                                          \
         else {                                                                                     \
-            GD_ECS_SINGLETON_NAME::emplace_or_replace(m_entity, p_key, p_data);                    \
+            GD_ECS_SINGLETON_TYPE::emplace_or_replace(m_entity, p_key, p_data);                    \
         }                                                                                          \
     }                                                                                              \
                                                                                                    \
