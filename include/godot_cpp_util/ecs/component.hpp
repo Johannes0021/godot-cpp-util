@@ -510,7 +510,7 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
 
 
 //==================================================================================================
-// GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE
+// GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY
 //==================================================================================================
 
 /**
@@ -536,7 +536,7 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
  * // Defines a Resource wrapper for the Data component.
  * // This allows the component to be created, stored, and edited as a Godot Resource.
  * // Entities such as E_Node can add and manage this component themselves.
- * GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(
+ * GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(
  *     ECSType,
  *     C_Data, Data, ECSType::ComponentType,
  *     godot::C_SuperCallPolicy::Never
@@ -547,15 +547,15 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
  * //// ...
  * //C_Data::register_types(); // This also calls ECSType::register_type<Data>(...);
  */
-#define GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                                   \
+#define GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(                                               \
     GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
+    GD_ECS_RES_COMPONENT_NAME,                                                                     \
     ECS_COMPONENT_NAME,                                                                            \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
+    GD_ECS_RES_COMPONENT_PARENT_TYPE,                                                              \
     SUPER_CALL_POLICY                                                                              \
 )                                                                                                  \
-class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {                                \
-    GDCLASS(GD_ECS_COMPONENT_NAME, GD_ECS_COMPONENT_PARENT_TYPE)                                   \
+class GD_ECS_RES_COMPONENT_NAME : public GD_ECS_RES_COMPONENT_PARENT_TYPE {                        \
+    GDCLASS(GD_ECS_RES_COMPONENT_NAME, GD_ECS_RES_COMPONENT_PARENT_TYPE)                           \
                                                                                                    \
     static_assert(                                                                                 \
         godot::gd_ecs_has_component_descriptor<ECS_COMPONENT_NAME>                                 \
@@ -598,7 +598,7 @@ class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {             
                                                                                                    \
                                                                                                    \
 public:                                                                                            \
-    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GD_ECS_COMPONENT_PARENT_TYPE::Signal)                       \
+    GD_ECS_EMPTY_SIGNAL_STRUCT(Signal, GD_ECS_RES_COMPONENT_PARENT_TYPE::Signal)                   \
                                                                                                    \
                                                                                                    \
                                                                                                    \
@@ -613,7 +613,7 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
     static void register_types() {                                                                 \
-        GDREGISTER_RUNTIME_CLASS(GD_ECS_COMPONENT_NAME);                                           \
+        GDREGISTER_RUNTIME_CLASS(GD_ECS_RES_COMPONENT_NAME);                                       \
         GD_ECS_SINGLETON_TYPE::register_type<ECS_COMPONENT_NAME>();                                \
     }                                                                                              \
                                                                                                    \
@@ -644,13 +644,13 @@ public:                                                                         
         GD_ECS_SINGLETON_TYPE::RegistryType::entity_type &p_entity                                 \
     ) override {                                                                                   \
         if constexpr (SUPER_CALL_POLICY == godot::C_SuperCallPolicy::Before) {                     \
-            GD_ECS_COMPONENT_PARENT_TYPE::emplace_or_replace(p_entity_node, p_entity);             \
+            GD_ECS_RES_COMPONENT_PARENT_TYPE::emplace_or_replace(p_entity_node, p_entity);         \
         }                                                                                          \
                                                                                                    \
         ECS_COMPONENT_NAME::emplace_or_replace(p_entity_node, p_entity, data);                     \
                                                                                                    \
         if constexpr (SUPER_CALL_POLICY == godot::C_SuperCallPolicy::After) {                      \
-            GD_ECS_COMPONENT_PARENT_TYPE::emplace_or_replace(p_entity_node, p_entity);             \
+            GD_ECS_RES_COMPONENT_PARENT_TYPE::emplace_or_replace(p_entity_node, p_entity);         \
         }                                                                                          \
     }                                                                                              \
                                                                                                    \
@@ -676,11 +676,11 @@ private:                                                                        
                                                                                                    \
         godot::ClassDB::bind_method(                                                               \
             godot::D_METHOD(field.set_fn, "p_value"),                                              \
-            &GD_ECS_COMPONENT_NAME::set<I, FieldType>                                              \
+            &GD_ECS_RES_COMPONENT_NAME::set<I, FieldType>                                          \
         );                                                                                         \
         godot::ClassDB::bind_method(                                                               \
             godot::D_METHOD(field.get_fn),                                                         \
-            &GD_ECS_COMPONENT_NAME::get<I, FieldType>                                              \
+            &GD_ECS_RES_COMPONENT_NAME::get<I, FieldType>                                          \
         );                                                                                         \
                                                                                                    \
         ADD_PROPERTY(field.property_info, field.set_fn, field.get_fn);                             \
@@ -698,7 +698,7 @@ private:                                                                        
 
 
 //==================================================================================================
-// GD_ECS_COMPONENT_WITH_PARENT
+// GD_ECS_RES_COMPONENT_WITH_PARENT
 //==================================================================================================
 
  /**
@@ -708,31 +708,31 @@ private:                                                                        
  *
  * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty) };
  *
- * GD_ECS_COMPONENT_WITH_PARENT(ECSType, C_Empty, Empty, ECSType::ComponentType)
+ * GD_ECS_RES_COMPONENT_WITH_PARENT(ECSType, C_Empty, Empty, ECSType::ComponentType)
  *
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
  * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>(...);
  */
-#define GD_ECS_COMPONENT_WITH_PARENT(                                                              \
+#define GD_ECS_RES_COMPONENT_WITH_PARENT(                                                          \
     GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
+    GD_ECS_RES_COMPONENT_NAME,                                                                     \
     ECS_COMPONENT_NAME,                                                                            \
-    GD_ECS_COMPONENT_PARENT_TYPE                                                                   \
+    GD_ECS_RES_COMPONENT_PARENT_TYPE                                                               \
 )                                                                                                  \
-GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                                           \
+GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(                                                       \
     GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
+    GD_ECS_RES_COMPONENT_NAME,                                                                     \
     ECS_COMPONENT_NAME,                                                                            \
-    GD_ECS_COMPONENT_PARENT_TYPE,                                                                  \
+    GD_ECS_RES_COMPONENT_PARENT_TYPE,                                                              \
     godot::C_SuperCallPolicy::Never                                                                \
 )
 
 
 
 //==================================================================================================
-// GD_ECS_COMPONENT_WITH_POLICY
+// GD_ECS_RES_COMPONENT_WITH_POLICY
 //==================================================================================================
 
  /**
@@ -742,22 +742,22 @@ GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                        
  *
  * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty) };
  *
- * GD_ECS_COMPONENT_WITH_POLICY(ECSType, C_Empty, Empty, godot::C_SuperCallPolicy::After)
+ * GD_ECS_RES_COMPONENT_WITH_POLICY(ECSType, C_Empty, Empty, godot::C_SuperCallPolicy::After)
  *
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
  * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>(...);
  */
-#define GD_ECS_COMPONENT_WITH_POLICY(                                                              \
+#define GD_ECS_RES_COMPONENT_WITH_POLICY(                                                          \
     GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
+    GD_ECS_RES_COMPONENT_NAME,                                                                     \
     ECS_COMPONENT_NAME,                                                                            \
     SUPER_CALL_POLICY                                                                              \
 )                                                                                                  \
-GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                                           \
+GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(                                                       \
     GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
+    GD_ECS_RES_COMPONENT_NAME,                                                                     \
     ECS_COMPONENT_NAME,                                                                            \
     GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
     SUPER_CALL_POLICY                                                                              \
@@ -766,7 +766,7 @@ GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                        
 
 
 //==================================================================================================
-// GD_ECS_COMPONENT
+// GD_ECS_RES_COMPONENT
 //==================================================================================================
 
  /**
@@ -776,17 +776,17 @@ GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                        
  *
  * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty) };
  *
- * GD_ECS_COMPONENT(ECSType, C_Empty, Empty)
+ * GD_ECS_RES_COMPONENT(ECSType, C_Empty, Empty)
  *
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
  * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>(...);
  */
-#define GD_ECS_COMPONENT(GD_ECS_SINGLETON_TYPE, GD_ECS_COMPONENT_NAME, ECS_COMPONENT_NAME)         \
-GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                                           \
+#define GD_ECS_RES_COMPONENT(GD_ECS_SINGLETON_TYPE, GD_ECS_RES_COMPONENT_NAME, ECS_COMPONENT_NAME) \
+GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(                                                       \
     GD_ECS_SINGLETON_TYPE,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
+    GD_ECS_RES_COMPONENT_NAME,                                                                     \
     ECS_COMPONENT_NAME,                                                                            \
     GD_ECS_SINGLETON_TYPE::ComponentType,                                                          \
     godot::C_SuperCallPolicy::Never                                                                \

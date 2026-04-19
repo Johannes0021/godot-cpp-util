@@ -63,10 +63,12 @@ struct Data {
  * There are also additional component resource wrapper macros that offer more control over the
  * parent component or how the component is inserted.
  */
-GD_ECS_COMPONENT(ECS, C_Data, Data)
-//GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(ECS, C_Data, Data, C_Component, C_SuperCallPolicy::Before)
-//GD_ECS_COMPONENT_WITH_PARENT(ECS, C_Data, Data, C_Component)
-//GD_ECS_COMPONENT_WITH_POLICY(ECS, C_Data, Data, C_SuperCallPolicy::After)
+GD_ECS_RES_COMPONENT(ECS, C_Data, Data)
+//GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(
+//    ECS, C_Data, Data, C_Component, C_SuperCallPolicy::Before
+//)
+//GD_ECS_RES_COMPONENT_WITH_PARENT(ECS, C_Data, Data, C_Component)
+//GD_ECS_RES_COMPONENT_WITH_POLICY(ECS, C_Data, Data, C_SuperCallPolicy::After)
 
 
 
@@ -142,7 +144,7 @@ struct DataExtended {
     }
 };
 
-GD_ECS_COMPONENT(ECS, C_DataExtended, DataExtended)
+GD_ECS_RES_COMPONENT(ECS, C_DataExtended, DataExtended)
 
 
 
@@ -167,7 +169,7 @@ struct Empty {
 };
 
 // Resource wrapper for the Empty component.
-GD_ECS_COMPONENT(ECS, C_Empty, Empty)
+GD_ECS_RES_COMPONENT(ECS, C_Empty, Empty)
 
 
 

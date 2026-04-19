@@ -181,7 +181,7 @@
  *
  *
  *
- * --- GD_ECS_COMPONENT_NAME class ---
+ * --- GD_ECS_RES_COMPONENT_NAME class ---
  *
  * Base class for all ECS resource wrapper components exposed to Godot.
  *
@@ -291,7 +291,7 @@
 #define GD_ECS_IMPL(                                                                               \
     GD_ECS_NAMESPACE,                                                                              \
     GD_ECS_SINGLETON_NAME,                                                                         \
-    GD_ECS_COMPONENT_NAME,                                                                         \
+    GD_ECS_RES_COMPONENT_NAME,                                                                     \
     GD_ECS_REGISTRY_TYPE,                                                                          \
     ...                                                                                            \
 )                                                                                                  \
@@ -300,7 +300,7 @@ namespace GD_ECS_NAMESPACE {                                                    
                                                                                                    \
                                                                                                    \
 class GD_ECS_ENTITY_NAME;                                                                          \
-class GD_ECS_COMPONENT_NAME;                                                                       \
+class GD_ECS_RES_COMPONENT_NAME;                                                                   \
                                                                                                    \
                                                                                                    \
                                                                                                    \
@@ -310,7 +310,7 @@ class GD_ECS_SINGLETON_NAME final {                                             
                                                                                                    \
 public:                                                                                            \
     using RegistryType = GD_ECS_REGISTRY_TYPE;                                                     \
-    using ComponentType = GD_ECS_COMPONENT_NAME;                                                   \
+    using ComponentType = GD_ECS_RES_COMPONENT_NAME;                                               \
     using ComponentIndex = std::uint64_t;                                                          \
                                                                                                    \
     using EmplaceOrReplaceFn =                                                                     \
@@ -460,7 +460,7 @@ public:                                                                         
                                                                                                    \
 public:                                                                                            \
     static void register_types() {                                                                 \
-        GDREGISTER_RUNTIME_CLASS(GD_ECS_COMPONENT_NAME);                                           \
+        GDREGISTER_RUNTIME_CLASS(GD_ECS_RES_COMPONENT_NAME);                                       \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
@@ -620,8 +620,8 @@ private:                                                                        
                                                                                                    \
                                                                                                    \
                                                                                                    \
-class GD_ECS_COMPONENT_NAME : public godot::Resource {                                             \
-    GDCLASS(GD_ECS_COMPONENT_NAME, godot::Resource)                                                \
+class GD_ECS_RES_COMPONENT_NAME : public godot::Resource {                                         \
+    GDCLASS(GD_ECS_RES_COMPONENT_NAME, godot::Resource)                                            \
                                                                                                    \
                                                                                                    \
                                                                                                    \
@@ -636,7 +636,7 @@ public:                                                                         
         GD_ECS_REGISTRY_TYPE::entity_type &p_entity                                                \
     ) {                                                                                            \
         auto &reg = GD_ECS_SINGLETON_NAME::registry();                                             \
-        reg.emplace_or_replace<godot::Ref<GD_ECS_COMPONENT_NAME>>(p_entity, this);                 \
+        reg.emplace_or_replace<godot::Ref<GD_ECS_RES_COMPONENT_NAME>>(p_entity, this);             \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
