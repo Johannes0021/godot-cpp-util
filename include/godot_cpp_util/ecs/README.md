@@ -161,10 +161,10 @@ struct Empty {
     Empty() = default;
 
     // Generates an empty component descriptor and a default emplace_or_replace implementation.
-    GD_ECS_EMPTY_COMPONENT_IMPL(ECS, Empty, "Empty")
+    GD_ECS_COMPONENT_IMPL(ECS, Empty, "Empty")
 
     // The macros above use these sub-macros:
-    //GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME)
+    //GD_ECS_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, __VA_ARGS__)
     //GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME)
 };
 

@@ -141,7 +141,7 @@ struct C_Descriptor final {
 
 
 
-    C_Descriptor(const godot::StringName &p_name, const C_Field<StructType, Ts> ...p_fields)
+    C_Descriptor(const godot::StringName &p_name, const C_Field<StructType, Ts> &...p_fields)
         : name(p_name)
         , fields(p_fields...)
     {}
@@ -300,6 +300,18 @@ private:
 
 
 
+template <typename StructType>
+struct C_DescriptorOfType final {
+
+    template <typename... Fields>
+    static auto make(const godot::StringName &p_name, const Fields &...p_fields) {
+        return C_Descriptor<StructType, typename Fields::FieldType...>(p_name, p_fields...);
+    }
+
+};
+
+
+
 template<typename>
 struct gd_ecs_is_component_descriptor : std::false_type {};
 
@@ -379,25 +391,6 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
 
 
 //==================================================================================================
-// GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL
-//==================================================================================================
-
-/**
- * Generates an empty component descriptor.
- *
- * struct Empty {
- *     GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(Empty, "ComponentName")
- * };
- */
-#define GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME)              \
-static const auto& descriptor() {                                                                  \
-    static godot::C_Descriptor<ECS_COMPONENT_NAME> descriptor{C_DESCRIPTOR_NAME};                  \
-    return descriptor;                                                                             \
-}
-
-
-
-//==================================================================================================
 // GD_ECS_COMPONENT_DESCRIPTOR_IMPL
 //==================================================================================================
 
@@ -410,7 +403,7 @@ static const auto& descriptor() {                                               
  *     float length{21.21f};
  *     godot::Dictionary meta{};
  *
- *     GD_ECS_COMPONENT_DESCRIPTOR_IMPL("DataComponentName",
+ *     GD_ECS_COMPONENT_DESCRIPTOR_IMPL(Data, "DataComponentName",
  *         godot::C_Field{&Data::id,     godot::Variant::Type::INT,        "id"},
  *         godot::C_Field{&Data::name,   godot::Variant::Type::STRING,     "name"},
  *         godot::C_Field{&Data::length, godot::Variant::Type::FLOAT,      "length"},
@@ -418,12 +411,12 @@ static const auto& descriptor() {                                               
  *     )
  * };
  */
-#define GD_ECS_COMPONENT_DESCRIPTOR_IMPL(C_DESCRIPTOR_NAME, ...)                                   \
+#define GD_ECS_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, ...)               \
 static const auto& descriptor() {                                                                  \
-    static godot::C_Descriptor descriptor{                                                         \
-        C_DESCRIPTOR_NAME,                                                                         \
-        __VA_ARGS__                                                                                \
-    };                                                                                             \
+    static const auto descriptor = godot::C_DescriptorOfType<ECS_COMPONENT_NAME>::make(            \
+        C_DESCRIPTOR_NAME                                                                          \
+        __VA_OPT__(,) __VA_ARGS__                                                                  \
+    );                                                                                             \
                                                                                                    \
     return descriptor;                                                                             \
 }
@@ -458,27 +451,6 @@ static void emplace_or_replace(                                                 
 
 
 //==================================================================================================
-// GD_ECS_EMPTY_COMPONENT_IMPL
-//==================================================================================================
-
-/**
- * Generates an empty component descriptor and a default emplace_or_replace implementation.
- *
- * #include "godot_cpp_util/ecs/ecs.hpp"
- *
- * using ECSType = godot::ECS;
- *
- * struct Empty {
- *     GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty, "ComponentName")
- * };
- */
-#define GD_ECS_EMPTY_COMPONENT_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME)  \
-GD_ECS_EMPTY_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME)                      \
-GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME)
-
-
-
-//==================================================================================================
 // GD_ECS_COMPONENT_IMPL
 //==================================================================================================
 
@@ -504,7 +476,7 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
  * };
  */
 #define GD_ECS_COMPONENT_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, ...)   \
-GD_ECS_COMPONENT_DESCRIPTOR_IMPL(C_DESCRIPTOR_NAME, __VA_ARGS__)                                   \
+GD_ECS_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, __VA_ARGS__)               \
 GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME)
 
 
@@ -706,7 +678,7 @@ private:                                                                        
  *
  * using ECSType = godot::ECS;
  *
- * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty) };
+ * struct Empty { GD_ECS_COMPONENT_IMPL(ECSType, Empty) };
  *
  * GD_ECS_RES_COMPONENT_WITH_PARENT(ECSType, C_Empty, Empty, ECSType::ComponentType)
  *
@@ -740,7 +712,7 @@ GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(                                    
  *
  * using ECSType = godot::ECS;
  *
- * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty) };
+ * struct Empty { GD_ECS_COMPONENT_IMPL(ECSType, Empty) };
  *
  * GD_ECS_RES_COMPONENT_WITH_POLICY(ECSType, C_Empty, Empty, godot::C_SuperCallPolicy::After)
  *
@@ -774,7 +746,7 @@ GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(                                    
  *
  * using ECSType = godot::ECS;
  *
- * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty) };
+ * struct Empty { GD_ECS_COMPONENT_IMPL(ECSType, Empty) };
  *
  * GD_ECS_RES_COMPONENT(ECSType, C_Empty, Empty)
  *
