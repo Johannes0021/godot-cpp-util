@@ -92,7 +92,7 @@ struct DataExtended {
      * - Resource wrapper components.
      *
      * This function is functionally equivalent to:
-     * GD_ECS_COMPONENT_DESCRIPTOR_IMPL("DataExtended",
+     * GD_ECS_COMPONENT_DESCRIPTOR_IMPL(DataExtended, "DataExtended",
      *     godot::C_Field{&DataExtended::id,     godot::Variant::Type::INT,        "id"},
      *     godot::C_Field{&DataExtended::name,   godot::Variant::Type::STRING,     "name"},
      *     godot::C_Field{&DataExtended::length, godot::Variant::Type::FLOAT,      "length"},

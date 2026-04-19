@@ -408,6 +408,14 @@ private:                                                                        
             "        auto &reg = " #GD_ECS_SINGLETON_TYPE "::registry();\n"                        \
             "        reg.emplace_or_replace<ComponentType>(p_entity, p_data);\n"                   \
             "    }\n"                                                                              \
+            "};\n\n"                                                                               \
+            "This function is functionally equivalent to:\n"                                       \
+            "\n"                                                                                   \
+            "struct ComponentType {\n"                                                             \
+            "    godot::String example{\"default value\"};\n"                                      \
+            "\n"                                                                                   \
+            "    GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(" #GD_ECS_SINGLETON_TYPE ", "            \
+                     "ComponentType)\n"                                                            \
             "};\n\n\n"                                                                             \
         );                                                                                         \
                                                                                                    \

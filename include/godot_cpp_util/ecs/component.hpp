@@ -397,6 +397,12 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
 /**
  * Generates an empty component descriptor.
  *
+ * #include "godot_cpp_util/ecs/ecs.hpp"
+ *
+ * struct Empty {
+ *     GD_ECS_COMPONENT_DESCRIPTOR_IMPL(Empty, "Empty")
+ * };
+ *
  * struct Data {
  *     int id{21};
  *     godot::String name{"SomeName"};
@@ -461,6 +467,10 @@ static void emplace_or_replace(                                                 
  *
  * using ECSType = godot::ECS;
  *
+ * struct Empty {
+ *     GD_ECS_COMPONENT_IMPL(ECSType, Empty, "Empty")
+ * };
+ *
  * struct Data {
  *     int id{21};
  *     godot::String name{"SomeName"};
@@ -517,7 +527,7 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
- * //C_Data::register_types(); // This also calls ECSType::register_type<Data>(...);
+ * //C_Data::register_types(); // This also calls ECSType::register_type<Data>();
  */
 #define GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(                                               \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -564,6 +574,17 @@ class GD_ECS_RES_COMPONENT_NAME : public GD_ECS_RES_COMPONENT_PARENT_TYPE {     
         "        auto &reg = " #GD_ECS_SINGLETON_TYPE "::registry();\n"                            \
         "        reg.emplace_or_replace<" #ECS_COMPONENT_NAME ">(p_entity, p_data);\n"             \
         "    }\n"                                                                                  \
+        "};\n\n"                                                                                   \
+        "This function is functionally equivalent to:\n"                                           \
+        "\n"                                                                                       \
+        "struct " #ECS_COMPONENT_NAME " {\n"                                                       \
+        "    godot::String example{\"default value\"};\n"                                          \
+        "\n"                                                                                       \
+        "    GD_ECS_COMPONENT_IMPL(" #GD_ECS_SINGLETON_TYPE ", " #ECS_COMPONENT_NAME ", \""        \
+                 #ECS_COMPONENT_NAME "ComponentName\",\n"                                          \
+        "        godot::C_Field{&"                                                                 \
+                     #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"}\n"       \
+        "    )\n"                                                                                  \
         "};\n\n\n"                                                                                 \
     );                                                                                             \
                                                                                                    \
@@ -678,14 +699,16 @@ private:                                                                        
  *
  * using ECSType = godot::ECS;
  *
- * struct Empty { GD_ECS_COMPONENT_IMPL(ECSType, Empty) };
+ * struct Empty {
+ *     GD_ECS_COMPONENT_IMPL(ECSType, Empty, "Empty")
+ * };
  *
  * GD_ECS_RES_COMPONENT_WITH_PARENT(ECSType, C_Empty, Empty, ECSType::ComponentType)
  *
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
- * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>(...);
+ * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>();
  */
 #define GD_ECS_RES_COMPONENT_WITH_PARENT(                                                          \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -712,14 +735,16 @@ GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(                                    
  *
  * using ECSType = godot::ECS;
  *
- * struct Empty { GD_ECS_COMPONENT_IMPL(ECSType, Empty) };
+ * struct Empty {
+ *     GD_ECS_COMPONENT_IMPL(ECSType, Empty, "Empty")
+ * };
  *
  * GD_ECS_RES_COMPONENT_WITH_POLICY(ECSType, C_Empty, Empty, godot::C_SuperCallPolicy::After)
  *
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
- * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>(...);
+ * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>();
  */
 #define GD_ECS_RES_COMPONENT_WITH_POLICY(                                                          \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -746,14 +771,16 @@ GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(                                    
  *
  * using ECSType = godot::ECS;
  *
- * struct Empty { GD_ECS_COMPONENT_IMPL(ECSType, Empty) };
+ * struct Empty {
+ *     GD_ECS_COMPONENT_IMPL(ECSType, Empty, "Empty")
+ * };
  *
  * GD_ECS_RES_COMPONENT(ECSType, C_Empty, Empty)
  *
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
- * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>(...);
+ * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>();
  */
 #define GD_ECS_RES_COMPONENT(GD_ECS_SINGLETON_TYPE, GD_ECS_RES_COMPONENT_NAME, ECS_COMPONENT_NAME) \
 GD_ECS_RES_COMPONENT_WITH_PARENT_AND_POLICY(                                                       \
