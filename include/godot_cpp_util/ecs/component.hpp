@@ -555,7 +555,7 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
- * //C_Data::register_types(); // This also calls ECS::register_type<Data>(...);
+ * //C_Data::register_types(); // This also calls ECSType::register_type<Data>(...);
  */
 #define GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                                   \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -728,7 +728,7 @@ private:                                                                        
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
- * //C_Empty::register_types(); // This also calls ECS::register_type<Empty>(...);
+ * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>(...);
  */
 #define GD_ECS_COMPONENT_WITH_PARENT(                                                              \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -760,7 +760,7 @@ GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                        
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
- * //C_Empty::register_types(); // This also calls ECS::register_type<Empty>(...);
+ * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>(...);
  */
 #define GD_ECS_COMPONENT_WITH_POLICY(                                                              \
     GD_ECS_SINGLETON_TYPE,                                                                         \
@@ -792,7 +792,7 @@ GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                        
  * //// Do not forget to expose the new component to Godot:
  * //ECSType::register_types();
  * //// ...
- * //C_Empty::register_types(); // This also calls ECS::register_type<Empty>(...);
+ * //C_Empty::register_types(); // This also calls ECSType::register_type<Empty>(...);
  */
 #define GD_ECS_COMPONENT(GD_ECS_SINGLETON_TYPE, GD_ECS_COMPONENT_NAME, ECS_COMPONENT_NAME)         \
 GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                                           \
