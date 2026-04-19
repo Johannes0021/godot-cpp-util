@@ -417,6 +417,8 @@ static const auto& descriptor() {                                               
 /**
  * Generates a default emplace_or_replace implementation.
  *
+ * #include "godot_cpp_util/ecs/ecs.hpp"
+ *
  * using ECSType = godot::ECS;
  *
  * struct ComponentType {
@@ -442,6 +444,8 @@ static void emplace_or_replace(                                                 
 /**
  * Generates an empty component descriptor and a default emplace_or_replace implementation.
  *
+ * #include "godot_cpp_util/ecs/ecs.hpp"
+ *
  * using ECSType = godot::ECS;
  *
  * struct Empty {
@@ -466,6 +470,8 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
 //==================================================================================================
 
 /**
+ * #include "godot_cpp_util/ecs/ecs.hpp"
+ *
  * using ECSType = godot::ECS;
  *
  * // A component that stores basic example data.
@@ -485,7 +491,7 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
  *     // Descriptor used by the ECS to expose this component to the Godot editor.
  *     // It defines how fields are interpreted, serialized, and edited.
  *     static const auto& descriptor() {
- *         static const auto descriptor = godot::C_Descriptor{
+ *         static const godot::C_Descriptor descriptor{
  *             // "ComponentName", // Defaults to an empty string if not explicitly specified.
  *             // When registered via a resource, this name is used directly. If it is empty, the
  *             // name is taken from GD_ECS_COMPONENT_WITH_PARENT_EMPLACE_OR_REPLACE, for example
@@ -585,7 +591,7 @@ class GD_ECS_COMPONENT_NAME : public GD_ECS_COMPONENT_PARENT_TYPE {             
         "    godot::String example{\"default value\"};\n"                                          \
         "\n"                                                                                       \
         "    static const auto& descriptor() {\n"                                                  \
-        "        static const auto descriptor = godot::C_Descriptor{\n"                            \
+        "        static const godot::C_Descriptor descriptor{\n"                                   \
         "            //\"ComponentName\",\n"                                                       \
         "            godot::C_Field{&"                                                             \
                          #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"},\n"  \
@@ -719,6 +725,8 @@ private:                                                                        
 //==================================================================================================
 
  /**
+ * #include "godot_cpp_util/ecs/ecs.hpp"
+ *
  * using ECSType = godot::ECS;
  *
  * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty) };
@@ -751,6 +759,8 @@ GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                        
 //==================================================================================================
 
  /**
+ * #include "godot_cpp_util/ecs/ecs.hpp"
+ *
  * using ECSType = godot::ECS;
  *
  * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty) };
@@ -783,6 +793,8 @@ GD_ECS_COMPONENT_WITH_PARENT_AND_POLICY(                                        
 //==================================================================================================
 
  /**
+ * #include "godot_cpp_util/ecs/ecs.hpp"
+ *
  * using ECSType = godot::ECS;
  *
  * struct Empty { GD_ECS_EMPTY_COMPONENT_IMPL(ECSType, Empty) };

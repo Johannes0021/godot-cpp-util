@@ -57,7 +57,7 @@ struct Data {
      * It defines how fields are interpreted, serialized, and edited.
      */
     static const auto& descriptor() {
-        static const auto descriptor = C_Descriptor{
+        static const C_Descriptor descriptor{
             // "ComponentName", // Defaults to an empty string if not explicitly specified.
             // When registered via a resource, this name is used directly. If it is empty, the name
             // is taken from GD_ECS_COMPONENT, for example GD_ECS_COMPONENT(ECS, C_Data, Data)
