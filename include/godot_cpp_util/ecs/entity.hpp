@@ -111,6 +111,9 @@ inline bool gd_ecs_is_valid_component_name_print_error(const godot::Variant& p_v
  * When an array is set, each component in the array is processed in sequence,
  * calling emplace_or_replace on each component to transfer its data into the ECS world.
  *
+ * Any component types passed as variadic arguments are emplaced or replaced into the ECS registry
+ * when the node instance is created.
+ *
  * Usage Example:
  *
  * #pragma once
@@ -144,7 +147,11 @@ inline bool gd_ecs_is_valid_component_name_print_error(const godot::Variant& p_v
  *     }
  * };
  *
- * GD_ECS_ENTITY(ECSType, E_NodeWithDefaults, godot::Node, Data)
+ * struct Empty {
+ *     GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECSType, Empty)
+ * };
+ *
+ * GD_ECS_ENTITY(ECSType, E_NodeWithDefaults, godot::Node, Data, Empty)
  *
  * //// Do not forget to expose the new entities to Godot:
  * //ECSType::register_types();
@@ -381,7 +388,6 @@ protected:                                                                      
                                                                                                    \
                                                                                                    \
                                                                                                    \
-private:                                                                                           \
     template <typename T>                                                                          \
     void emplace_or_replace_one_default() {                                                        \
         static_assert(                                                                             \
@@ -432,6 +438,7 @@ private:                                                                        
                                                                                                    \
                                                                                                    \
                                                                                                    \
+private:                                                                                           \
     godot::Array get_empty_typed_array() const {                                                   \
         return godot::Array{};                                                                     \
     }                                                                                              \
@@ -596,5 +603,107 @@ private:                                                                        
             GD_ECS_SINGLETON_TYPE::emplace_or_replace(m_entity, p_key, p_data);                    \
         }                                                                                          \
     }                                                                                              \
+                                                                                                   \
+};
+
+
+
+//==================================================================================================
+// GD_ECS_ENTITY_DERIVED
+//==================================================================================================
+
+/**
+ * Defines a Godot exposed ECS entity class that is derived from another ECS enabled entity type.
+ *
+ * This macro is used to create entity nodes that inherit from an existing ECS entity class instead
+ * of directly from a Godot node type.
+ *
+ * This reduces boilerplate and runtime overhead, as bind_methods and class registration are
+ * performed by the parent entity class and shared by derived entities.
+ *
+ * The parent entity type must already be an ECS entity and must define the gd_ecs_entity_tag.
+ * This is enforced at compile time.
+ *
+ * The derived entity automatically registers itself with Godot and applies default ECS components
+ * on construction.
+ *
+ * Any component types passed as variadic arguments are emplaced or replaced into the ECS registry
+ * when the node instance is created.
+ *
+ * This allows convenient specialization of existing ECS entity nodes through inheritance.
+ *
+ * Usage Example:
+ *
+ * #pragma once
+ *
+ * #include "godot_cpp_util/ecs/ecs.hpp"
+ *
+ * using ECSType = godot::ECS;
+ *
+ * GD_ECS_ENTITY(ECSType, E_Node, godot::Node)
+ * GD_ECS_ENTITY_DERIVED(E_NodeDerived, E_Node)
+ *
+ * // A component that stores basic example data.
+ * struct Data {
+ *     godot::String name{"SomeName"};
+ *
+ *     // Default constructor is required by the ECS.
+ *     Data() = default;
+ *
+ *     // Required for:
+ *     // - Resource wrapper components.
+ *     // - Default components of entities.
+ *     //
+ *     // This function is functionally equivalent to:
+ *     // GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECSType, Data)
+ *     static void emplace_or_replace(
+ *         [[maybe_unused]] godot::Node &p_entity_node,
+ *         ECSType::RegistryType::entity_type &p_entity,
+ *         Data &p_data
+ *     ) {
+ *         auto &reg = ECSType::registry();
+ *         reg.emplace_or_replace<Data>(p_entity, p_data);
+ *     }
+ * };
+ *
+ * struct Empty {
+ *     GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECSType, Empty)
+ * };
+ *
+ * GD_ECS_ENTITY_DERIVED(E_NodeDerivedWithDefaults, E_Node, Data, Empty)
+ *
+ * //// Do not forget to expose the new entities to Godot:
+ * //ECSType::register_types();
+ * //// ...
+ * //E_Node::register_types();
+ * //E_NodeDerived::register_types();
+ * //E_NodeDerivedWithDefaults::register_types();
+ */
+#define GD_ECS_ENTITY_DERIVED(GD_ECS_ENTITY_TYPE, GD_ECS_ENTITY_PARENT_TYPE, ...)                  \
+class GD_ECS_ENTITY_TYPE : public GD_ECS_ENTITY_PARENT_TYPE {                                      \
+    GDCLASS(GD_ECS_ENTITY_TYPE, GD_ECS_ENTITY_PARENT_TYPE)                                         \
+                                                                                                   \
+    static_assert(                                                                                 \
+        godot::has_gd_ecs_entity_tag_v<GD_ECS_ENTITY_PARENT_TYPE>,                                 \
+        #GD_ECS_ENTITY_PARENT_TYPE " must define gd_ecs_entity_tag!"                               \
+    );                                                                                             \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+public:                                                                                            \
+    static void register_types() {                                                                 \
+        GDREGISTER_RUNTIME_CLASS(GD_ECS_ENTITY_TYPE);                                              \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+    GD_ECS_ENTITY_TYPE() {                                                                         \
+        emplace_or_replace_defaults<__VA_ARGS__>();                                                \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+protected:                                                                                         \
+    static void _bind_methods() {}                                                                 \
                                                                                                    \
 };

@@ -32,6 +32,9 @@ using namespace godot;
 // Defines an ECS entity named E_Node that inherits from Godot's Node.
 GD_ECS_ENTITY(ECS, E_Node, Node)
 
+// Defines an ECS entity derived from E_Node, reusing its bindings and registration.
+GD_ECS_ENTITY_DERIVED(E_NodeDerived, E_Node)
+
 
 
 //==================================================================================================
@@ -183,6 +186,12 @@ GD_ECS_RES_COMPONENT(ECS, C_Empty, Empty)
  */
 GD_ECS_ENTITY(ECS, E_NodeWithDefaults, Node, Data, Empty)
 
+/**
+ * Defines an ECS entity derived from E_Node that inserts default components and reuses the parent
+ * entity bindings and registration.
+ */
+GD_ECS_ENTITY_DERIVED(E_NodeDerivedWithDefaults, E_Node, Data, Empty)
+
 
 
 //==================================================================================================
@@ -195,7 +204,9 @@ inline void register_types() {
 
     // Register entities.
     E_Node::register_types();
+    E_NodeDerived::register_types();
     E_NodeWithDefaults::register_types();
+    E_NodeDerivedWithDefaults::register_types();
 
     // Register components and component resources.
     C_Data::register_types();
