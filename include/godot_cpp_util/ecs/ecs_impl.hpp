@@ -383,7 +383,7 @@ public:                                                                         
                                                                                                    \
                 auto &descriptor = T::descriptor();                                                \
                 T instance{};                                                                      \
-                descriptor.set(instance, p_data);                                                  \
+                descriptor.set_variant(instance, p_data);                                          \
                 reg.emplace_or_replace<T>(p_entity, instance);                                     \
                                                                                                    \
                 return true;                                                                       \

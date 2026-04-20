@@ -167,24 +167,6 @@ struct C_Descriptor final {
 
 
 
-    void set(StructType& p_instance, const godot::Variant &p_variant) const {
-        if constexpr (std::tuple_size_v<FieldTypeTuple> == 1) {
-            using FieldType = std::tuple_element_t<0, FieldTypeTuple>::FieldType;
-            set<0>(p_instance, FieldType{p_variant});
-        }
-        else if constexpr (std::tuple_size_v<FieldTypeTuple> > 0) {
-            const godot::Dictionary dictionary = p_variant;
-
-            set_from_dictionary(
-                p_instance,
-                dictionary,
-                std::make_index_sequence<std::tuple_size_v<FieldTypeTuple>>{}
-            );
-        }
-    }
-
-
-
     template <std::size_t I>
     auto* try_get(StructType& p_instance) const {
         auto &field = std::get<I>(fields);
@@ -225,6 +207,25 @@ struct C_Descriptor final {
 
 
 
+    void set_variant(StructType& p_instance, const godot::Variant &p_variant) const {
+        if constexpr (std::tuple_size_v<FieldTypeTuple> == 1) {
+            using FieldType = std::tuple_element_t<0, FieldTypeTuple>::FieldType;
+            FieldType value = p_variant;
+            set<0>(p_instance, value);
+        }
+        else if constexpr (std::tuple_size_v<FieldTypeTuple> > 0) {
+            const godot::Dictionary dictionary = p_variant;
+
+            set_from_dictionary(
+                p_instance,
+                dictionary,
+                std::make_index_sequence<std::tuple_size_v<FieldTypeTuple>>{}
+            );
+        }
+    }
+
+
+
     godot::Variant to_variant(const StructType& p_instance) const {
         if constexpr (std::tuple_size_v<FieldTypeTuple> == 1) {
             if (auto *value = try_get<0>(p_instance)) {
@@ -244,17 +245,6 @@ struct C_Descriptor final {
 
 
 private:
-    template <std::size_t ...Is>
-    void set_from_dictionary(
-        StructType &p_instance,
-        const godot::Dictionary &p_dictionary,
-        std::index_sequence<Is...>
-    ) const {
-        (set_field_from_dictionary_if_present<Is>(p_instance, p_dictionary), ...);
-    }
-
-
-
     template <std::size_t I>
     void set_field_from_dictionary_if_present(
         StructType &p_instance,
@@ -265,8 +255,20 @@ private:
         const godot::String key = field.property_info.name;
         if (p_dictionary.has(key)) {
             using FieldType = std::tuple_element_t<I, FieldTypeTuple>::FieldType;
-            set<I>(p_instance, FieldType{p_dictionary[key]});
+            FieldType value = p_dictionary[key];
+            set<I>(p_instance, value);
         }
+    }
+
+
+
+    template <std::size_t ...Is>
+    void set_from_dictionary(
+        StructType &p_instance,
+        const godot::Dictionary &p_dictionary,
+        std::index_sequence<Is...>
+    ) const {
+        (set_field_from_dictionary_if_present<Is>(p_instance, p_dictionary), ...);
     }
 
 
@@ -651,7 +653,7 @@ public:                                                                         
                                                                                                    \
 protected:                                                                                         \
     static void _bind_methods() {                                                                  \
-        bind_all(                                                                                  \
+        bind_all_fields(                                                                           \
             std::make_index_sequence<std::tuple_size_v<typename DescriptorType::FieldTypeTuple>>{} \
         );                                                                                         \
     }                                                                                              \
@@ -682,7 +684,7 @@ private:                                                                        
                                                                                                    \
                                                                                                    \
     template <std::size_t ...I>                                                                    \
-    static void bind_all(std::index_sequence<I...>) {                                              \
+    static void bind_all_fields(std::index_sequence<I...>) {                                       \
         (bind_field<I>(), ...);                                                                    \
     }                                                                                              \
                                                                                                    \
