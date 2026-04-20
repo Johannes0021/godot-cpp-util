@@ -594,7 +594,7 @@ public:
      * signal.disconnect(node, c); // disconnects regardless of any bound/unbound args.
      */
     void disconnect(Object &p_owner, const Callable &p_callable) const {
-        return p_owner.disconnect(get_name(), p_callable);
+        p_owner.disconnect(get_name(), p_callable);
     }
 
 
@@ -623,7 +623,7 @@ public:
      */
     template <typename F>
     void disconnect(Object &p_owner, const StaticBinding<F> &p_static_binding) const {
-        return p_owner.disconnect(get_name(), p_static_binding.m_callable);
+        p_owner.disconnect(get_name(), p_static_binding.m_callable);
     }
 
 
@@ -654,7 +654,63 @@ public:
      */
     template <typename T, typename F>
     void disconnect(Object &p_owner, const MemberBinding<T, F> &p_member_binding) const {
-        return p_owner.disconnect(get_name(), p_member_binding.m_callable);
+        p_owner.disconnect(get_name(), p_member_binding.m_callable);
+    }
+
+
+
+    /**
+     * Checks whether a signal is connected to a specific callable.
+     *
+     * The connection is identified solely by the signal name and the Callable.
+     * Any bound or unbound arguments inside the Callable are ignored for the purpose of this check,
+     * exactly like Godot signal connections behave.
+     *
+     * @param p_owner The Godot Object that owns the signal.
+     * @param p_callable The callable to test for an existing connection.
+     * @return true if the signal is connected to the callable. false otherwise.
+     */
+    bool is_connected(const Object &p_owner, const Callable &p_callable) const {
+        return p_owner.is_connected(get_name(), p_callable);
+    }
+
+
+
+    /**
+     * Checks whether a signal is connected to a static function binding.
+     *
+     * This overload is intended for static function callbacks.
+     * Only the function pointer itself is used to identify the connection.
+     * Any bound arguments are ignored.
+     *
+     * @tparam F Static function type.
+     * @param p_owner The Godot Object that owns the signal.
+     * @param p_static_binding The static function binding to test.
+     * @return true if the signal is connected to the static function. false otherwise.
+     */
+    template <typename F>
+    bool is_connected(const Object &p_owner, const StaticBinding<F> &p_static_binding) const {
+        return p_owner.is_connected(get_name(), p_static_binding.m_callable);
+    }
+
+
+
+    /**
+     * Checks whether a signal is connected to a member function binding.
+     *
+     * The connection is identified by the target object instance and the member function pointer
+     * only.
+     * Any bound arguments or differences in signal arguments do not matter.
+     *
+     * @tparam T Class type of the object instance.
+     * @tparam F Member function type.
+     * @param p_owner The Godot Object that owns the signal.
+     * @param p_member_binding The member function binding to test.
+     * @return true if the signal is connected to the member function. false otherwise.
+     */
+    template <typename T, typename F>
+    bool is_connected(const Object &p_owner, const MemberBinding<T, F> &p_member_binding) const {
+        return p_owner.is_connected(get_name(), p_member_binding.m_callable);
     }
 
 
