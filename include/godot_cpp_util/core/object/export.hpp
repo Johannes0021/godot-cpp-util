@@ -24,10 +24,10 @@
  *     godot::Dictionary meta{};
  *
  * public:
- *     These explicit getter and setter functions may look like extra boilerplate.
- *     In most cases they are not required and exist here mainly to demonstrate how
- *     '.with_set(...)' and '.with_get(...)' can override the default member access behavior.
- *     Normally GD_EXPORT uses direct member access automatically when no overrides are provided.
+ *     // These explicit getter and setter functions may look like extra boilerplate.
+ *     // In most cases they are not required and exist here mainly to demonstrate how
+ *     // '.with_set(...)' and '.with_get(...)' can override the default member access behavior.
+ *     // Normally GD_EXPORT uses direct member access automatically when no overrides are provided.
  *
  *     // Explicit setter for the 'id' field.
  *     void set_id(int value) {
