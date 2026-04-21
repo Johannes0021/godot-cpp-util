@@ -37,11 +37,7 @@
 #include <tuple>
 #include <utility>
 
-#include "godot_cpp/core/property_info.hpp"
-#include "godot_cpp/variant/dictionary.hpp"
-#include "godot_cpp/variant/string.hpp"
-#include "godot_cpp/variant/string_name.hpp"
-#include "godot_cpp/variant/variant.hpp"
+#include "godot_cpp_util/core/object/export.hpp"
 
 #include "signal_macros.hpp"
 
@@ -52,287 +48,28 @@ namespace godot {
 
 
 //==================================================================================================
-// C_Field
+// gd_ecs_has_export_descriptor
 //==================================================================================================
-
-template<typename StructT, typename FieldT>
-struct C_Field final {
-    using StructType = StructT;
-    using FieldType = FieldT;
-
-
-
-    FieldType StructType:: *member = nullptr;
-    godot::PropertyInfo property_info{};
-    godot::StringName set_fn{};
-    godot::StringName get_fn{};
-
-
-
-    C_Field(
-        FieldType StructType:: *p_member,
-        const godot::PropertyInfo &p_property_info,
-        const godot::StringName &p_set_fn,
-        const godot::StringName &p_get_fn
-    )
-        : member(p_member)
-        , property_info(p_property_info)
-        , set_fn(p_set_fn)
-        , get_fn(p_get_fn)
-    {}
-
-
-
-    C_Field(
-        FieldType StructType:: *p_member,
-        godot::Variant::Type p_type,
-        const godot::StringName &p_name,
-        const godot::StringName &p_set_fn,
-        const godot::StringName &p_get_fn
-    )
-        : member(p_member)
-        , property_info(godot::PropertyInfo(p_type, p_name))
-        , set_fn(p_set_fn)
-        , get_fn(p_get_fn)
-    {}
-
-
-
-    C_Field(
-        FieldType StructType:: *p_member,
-        const godot::PropertyInfo &p_property_info
-    )
-        : member(p_member)
-        , property_info(p_property_info)
-        , set_fn(godot::String{"set_"} + p_property_info.name)
-        , get_fn(godot::String{"get_"} + p_property_info.name)
-    {}
-
-
-
-    C_Field(
-        FieldType StructType:: *p_member,
-        godot::Variant::Type p_type,
-        const godot::StringName &p_name
-    )
-        : member(p_member)
-        , property_info(godot::PropertyInfo(p_type, p_name))
-        , set_fn(godot::String{"set_"} + p_name)
-        , get_fn(godot::String{"get_"} + p_name)
-    {}
-
-};
-
-
-
-//==================================================================================================
-// C_Descriptor
-//==================================================================================================
-
-template <typename StructT, typename ...Ts>
-struct C_Descriptor final {
-    using StructType = StructT;
-    using FieldTypeTuple = std::tuple<C_Field<StructType, Ts>...>;
-
-
-
-    godot::StringName name{};
-    FieldTypeTuple fields{};
-
-
-
-    C_Descriptor(const godot::StringName &p_name, const C_Field<StructType, Ts> &...p_fields)
-        : name(p_name)
-        , fields(p_fields...)
-    {}
-
-
-
-    template <std::size_t I>
-    void set(StructType& p_instance, const auto &p_value) const {
-        auto &field = std::get<I>(fields);
-
-        if (field.member) {
-            p_instance.*(field.member) = p_value;
-            return;
-        }
-
-        ERR_PRINT(godot::vformat(
-            "C_Descriptor.set()%s: Missing member pointer for field '%s'. Tried to set: %s",
-            name.is_empty() ? "" : godot::vformat(" (%s)", name),
-            field.property_info.name,
-            p_value
-        ));
-    }
-
-
-
-    template <std::size_t I>
-    auto* try_get(StructType& p_instance) const {
-        auto &field = std::get<I>(fields);
-
-        if (field.member) {
-            return &(p_instance.*(field.member));
-        }
-
-        ERR_PRINT(godot::vformat(
-            "C_Descriptor.try_get()%s: Missing member pointer for field '%s'.",
-            name.is_empty() ? "" : godot::vformat(" (%s)", name),
-            field.property_info.name
-        ));
-
-        using FieldType = std::tuple_element_t<I, FieldTypeTuple>::FieldType;
-        return static_cast<FieldType*>(nullptr);
-    }
-
-
-
-    template <std::size_t I>
-    const auto* try_get(const StructType& p_instance) const {
-        const auto &field = std::get<I>(fields);
-
-        if (field.member) {
-            return &(p_instance.*(field.member));
-        }
-
-        ERR_PRINT(godot::vformat(
-            "C_Descriptor.try_get()%s: Missing member pointer for field '%s'.",
-            name.is_empty() ? "" : godot::vformat(" (%s)", name),
-            field.property_info.name
-        ));
-
-        using FieldType = std::tuple_element_t<I, FieldTypeTuple>::FieldType;
-        return static_cast<FieldType*>(nullptr);
-    }
-
-
-
-    void set_variant(StructType& p_instance, const godot::Variant &p_variant) const {
-        if constexpr (std::tuple_size_v<FieldTypeTuple> == 1) {
-            using FieldType = std::tuple_element_t<0, FieldTypeTuple>::FieldType;
-            FieldType value = p_variant;
-            set<0>(p_instance, value);
-        }
-        else if constexpr (std::tuple_size_v<FieldTypeTuple> > 0) {
-            const godot::Dictionary dictionary = p_variant;
-
-            set_from_dictionary(
-                p_instance,
-                dictionary,
-                std::make_index_sequence<std::tuple_size_v<FieldTypeTuple>>{}
-            );
-        }
-    }
-
-
-
-    godot::Variant to_variant(const StructType& p_instance) const {
-        if constexpr (std::tuple_size_v<FieldTypeTuple> == 1) {
-            if (auto *value = try_get<0>(p_instance)) {
-                return godot::Variant{*value};
-            }
-        }
-        else if constexpr (std::tuple_size_v<FieldTypeTuple> > 0) {
-            return try_to_dictionary(
-                p_instance,
-                std::make_index_sequence<std::tuple_size_v<FieldTypeTuple>>{}
-            );
-        }
-
-        return godot::Variant{};
-    }
-
-
-
-private:
-    template <std::size_t I>
-    void set_field_from_dictionary_if_present(
-        StructType &p_instance,
-        const godot::Dictionary &p_dictionary
-    ) const {
-        auto &field = std::get<I>(fields);
-
-        const godot::String key = field.property_info.name;
-        if (p_dictionary.has(key)) {
-            using FieldType = std::tuple_element_t<I, FieldTypeTuple>::FieldType;
-            FieldType value = p_dictionary[key];
-            set<I>(p_instance, value);
-        }
-    }
-
-
-
-    template <std::size_t ...Is>
-    void set_from_dictionary(
-        StructType &p_instance,
-        const godot::Dictionary &p_dictionary,
-        std::index_sequence<Is...>
-    ) const {
-        (set_field_from_dictionary_if_present<Is>(p_instance, p_dictionary), ...);
-    }
-
-
-
-    template <std::size_t I>
-    void try_insert_field_to_dictionary(
-        const StructType &p_instance,
-        godot::Dictionary &p_dictionary
-    ) const {
-        auto &field = std::get<I>(fields);
-        if (auto *value = try_get<I>(p_instance)) {
-            p_dictionary[field.property_info.name] = godot::Variant{*value};
-        }
-    }
-
-
-
-    template <std::size_t ...Is>
-    godot::Dictionary try_to_dictionary(
-        const StructType& p_instance,
-        std::index_sequence<Is...>
-    ) const {
-        godot::Dictionary dictionary;
-
-        (try_insert_field_to_dictionary<Is>(p_instance, dictionary), ...);
-
-        return dictionary;
-    }
-
-};
-
-
-
-template <typename StructType>
-struct C_DescriptorOfType final {
-
-    template <typename... Fields>
-    static auto make(const godot::StringName &p_name, const Fields &...p_fields) {
-        return C_Descriptor<StructType, typename Fields::FieldType...>(p_name, p_fields...);
-    }
-
-};
-
-
 
 template<typename>
-struct gd_ecs_is_component_descriptor : std::false_type {};
+struct gd_ecs_is_export_descriptor : std::false_type {};
 
 
 
 template<typename T, typename ...Ts>
-struct gd_ecs_is_component_descriptor<const C_Descriptor<T, Ts...>&> : std::true_type {};
+struct gd_ecs_is_export_descriptor<const ExportDescriptor<T, Ts...>&> : std::true_type {};
 
 
 
 template<typename T>
-inline constexpr bool gd_ecs_is_component_descriptor_v = gd_ecs_is_component_descriptor<T>::value;
+inline constexpr bool gd_ecs_is_export_descriptor_v = gd_ecs_is_export_descriptor<T>::value;
 
 
 
 template <typename T>
-concept gd_ecs_has_component_descriptor =
-requires { T::descriptor(); }
-&& gd_ecs_is_component_descriptor_v<decltype(T::descriptor())>;
+concept gd_ecs_has_export_descriptor =
+requires { T::export_descriptor(); }
+&& gd_ecs_is_export_descriptor_v<decltype(T::export_descriptor())>;
 
 
 
@@ -393,7 +130,7 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
 
 
 //==================================================================================================
-// GD_ECS_COMPONENT_DESCRIPTOR_IMPL
+// GD_ECS_COMPONENT_EXPORT
 //==================================================================================================
 
 /**
@@ -402,26 +139,26 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
  * #include "godot_cpp_util/ecs/ecs.hpp"
  *
  * struct Empty {
- *     GD_ECS_COMPONENT_DESCRIPTOR_IMPL(Empty, "Empty")
+ *     GD_ECS_COMPONENT_EXPORT(Empty, "Empty")
  * };
  *
  * struct Data {
  *     int id{21};
- *     godot::String name{"SomeName"};
  *     float length{21.21f};
+ *     godot::String name{"SomeName"};
  *     godot::Dictionary meta{};
  *
- *     GD_ECS_COMPONENT_DESCRIPTOR_IMPL(Data, "DataComponentName",
- *         godot::C_Field{&Data::id,     godot::Variant::Type::INT,        "id"},
- *         godot::C_Field{&Data::name,   godot::Variant::Type::STRING,     "name"},
- *         godot::C_Field{&Data::length, godot::Variant::Type::FLOAT,      "length"},
- *         godot::C_Field{&Data::meta,   godot::Variant::Type::DICTIONARY, "meta"}
+ *     GD_ECS_COMPONENT_EXPORT(Data, "DataComponentName",
+ *         godot::ExportByValue{&Data::id,     godot::Variant::Type::INT,        "id"},
+ *         godot::ExportByValue{&Data::length, godot::Variant::Type::FLOAT,      "length"},
+ *         godot::ExportAsRef{&Data::name,     godot::Variant::Type::STRING,     "name"},
+ *         godot::ExportAsRef{&Data::meta,     godot::Variant::Type::DICTIONARY, "meta"}
  *     )
  * };
  */
-#define GD_ECS_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, ...)               \
-static const auto& descriptor() {                                                                  \
-    static const auto descriptor = godot::C_DescriptorOfType<ECS_COMPONENT_NAME>::make(            \
+#define GD_ECS_COMPONENT_EXPORT(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, ...)                        \
+static const auto& export_descriptor() {                                                           \
+    static const auto descriptor = godot::ExportDescriptorOfType<ECS_COMPONENT_NAME>::make(        \
         C_DESCRIPTOR_NAME                                                                          \
         __VA_OPT__(,) __VA_ARGS__                                                                  \
     );                                                                                             \
@@ -442,8 +179,8 @@ static const auto& descriptor() {                                               
  *
  * using ECSType = godot::ECS;
  *
- * struct ComponentType {
- *     GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECSType, ComponentType)
+ * struct Data {
+ *     GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(ECSType, Data)
  * };
  */
 #define GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME)        \
@@ -480,15 +217,15 @@ static void emplace_or_replace(                                                 
  *     godot::Dictionary meta{};
  *
  *     GD_ECS_COMPONENT_IMPL(ECSType, Data, "ComponentName",
- *         godot::C_Field{&Data::id,     godot::Variant::Type::INT,        "id"},
- *         godot::C_Field{&Data::name,   godot::Variant::Type::STRING,     "name"},
- *         godot::C_Field{&Data::length, godot::Variant::Type::FLOAT,      "length"},
- *         godot::C_Field{&Data::meta,   godot::Variant::Type::DICTIONARY, "meta"}
+ *         godot::ExportByValue{&Data::id,     godot::Variant::Type::INT,        "id"},
+ *         godot::ExportAsRef{&Data::name,     godot::Variant::Type::STRING,     "name"},
+ *         godot::ExportByValue{&Data::length, godot::Variant::Type::FLOAT,      "length"},
+ *         godot::ExportAsRef{&Data::meta,     godot::Variant::Type::DICTIONARY, "meta"}
  *     )
  * };
  */
 #define GD_ECS_COMPONENT_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, ...)   \
-GD_ECS_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, __VA_ARGS__)               \
+GD_ECS_COMPONENT_EXPORT(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, __VA_ARGS__)                        \
 GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME)
 
 
@@ -510,10 +247,10 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
  *     godot::Dictionary meta{};
  *
  *     GD_ECS_COMPONENT_IMPL(ECSType, Data, "ComponentName",
- *         godot::C_Field{&Data::id,     godot::Variant::Type::INT,        "id"},
- *         godot::C_Field{&Data::name,   godot::Variant::Type::STRING,     "name"},
- *         godot::C_Field{&Data::length, godot::Variant::Type::FLOAT,      "length"},
- *         godot::C_Field{&Data::meta,   godot::Variant::Type::DICTIONARY, "meta"}
+ *         godot::ExportByValue{&Data::id,     godot::Variant::Type::INT,        "id"},
+ *         godot::ExportAsRef{&Data::name,     godot::Variant::Type::STRING,     "name"},
+ *         godot::ExportByValue{&Data::length, godot::Variant::Type::FLOAT,      "length"},
+ *         godot::ExportAsRef{&Data::meta,     godot::Variant::Type::DICTIONARY, "meta"}
  *     )
  * };
  *
@@ -542,7 +279,7 @@ class GD_ECS_RES_COMPONENT_NAME : public GD_ECS_RES_COMPONENT_PARENT_TYPE {     
     GDCLASS(GD_ECS_RES_COMPONENT_NAME, GD_ECS_RES_COMPONENT_PARENT_TYPE)                           \
                                                                                                    \
     static_assert(                                                                                 \
-        godot::gd_ecs_has_component_descriptor<ECS_COMPONENT_NAME>                                 \
+        godot::gd_ecs_has_export_descriptor<ECS_COMPONENT_NAME>                                    \
         && godot::gd_ecs_has_emplace_or_replace<                                                   \
             godot::Node,                                                                           \
             GD_ECS_SINGLETON_TYPE::RegistryType::entity_type,                                      \
@@ -550,7 +287,7 @@ class GD_ECS_RES_COMPONENT_NAME : public GD_ECS_RES_COMPONENT_PARENT_TYPE {     
         >,                                                                                         \
         "\n"                                                                                       \
         "Concept violation summary:\n"                                                             \
-        #ECS_COMPONENT_NAME " is not a valid gd_ecs_has_component_descriptor or "                  \
+        #ECS_COMPONENT_NAME " is not a valid gd_ecs_has_export_descriptor or "                     \
         "gd_ecs_has_emplace_or_replace component type.\n"                                          \
         "\n"                                                                                       \
         "Expected interface:\n"                                                                    \
@@ -558,10 +295,10 @@ class GD_ECS_RES_COMPONENT_NAME : public GD_ECS_RES_COMPONENT_PARENT_TYPE {     
         "struct " #ECS_COMPONENT_NAME " {\n"                                                       \
         "    godot::String example{\"default value\"};\n"                                          \
         "\n"                                                                                       \
-        "    static const auto& descriptor() {\n"                                                  \
-        "        static const godot::C_Descriptor descriptor{\n"                                   \
+        "    static const auto& export_descriptor() {\n"                                           \
+        "        static const godot::ExportDescriptor descriptor{\n"                               \
         "            \"" #ECS_COMPONENT_NAME "ComponentName\",\n"                                  \
-        "            godot::C_Field{&"                                                             \
+        "            godot::ExportAsRef{&"                                                         \
                          #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"},\n"  \
         "        };\n"                                                                             \
         "\n"                                                                                       \
@@ -584,7 +321,7 @@ class GD_ECS_RES_COMPONENT_NAME : public GD_ECS_RES_COMPONENT_PARENT_TYPE {     
         "\n"                                                                                       \
         "    GD_ECS_COMPONENT_IMPL(" #GD_ECS_SINGLETON_TYPE ", " #ECS_COMPONENT_NAME ", \""        \
                  #ECS_COMPONENT_NAME "ComponentName\",\n"                                          \
-        "        godot::C_Field{&"                                                                 \
+        "        godot::ExportAsRef{&"                                                             \
                      #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"}\n"       \
         "    )\n"                                                                                  \
         "};\n\n\n"                                                                                 \
@@ -599,11 +336,12 @@ public:                                                                         
                                                                                                    \
 public:                                                                                            \
     using ComponentType = ECS_COMPONENT_NAME;                                                      \
-    using DescriptorType = std::remove_reference_t<decltype(ComponentType::descriptor())>;         \
+    using ExportDescriptorType =                                                                   \
+        std::remove_reference_t<decltype(ECS_COMPONENT_NAME::export_descriptor())>;                \
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    ComponentType data{};                                                                          \
+    ECS_COMPONENT_NAME data{};                                                                     \
                                                                                                    \
                                                                                                    \
                                                                                                    \
@@ -615,8 +353,8 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
     template <std::size_t I, typename T>                                                           \
-    void set(const T& p_value) {                                                                   \
-        auto &descriptor = ECS_COMPONENT_NAME::descriptor();                                       \
+    void set(T p_value) {                                                                          \
+        auto &descriptor = ECS_COMPONENT_NAME::export_descriptor();                                \
         descriptor.set<I>(data, p_value);                                                          \
     }                                                                                              \
                                                                                                    \
@@ -624,12 +362,8 @@ public:                                                                         
                                                                                                    \
     template <std::size_t I, typename T>                                                           \
     T get() const {                                                                                \
-        auto &descriptor = ECS_COMPONENT_NAME::descriptor();                                       \
-        if (auto *value = descriptor.try_get<I>(data)) {                                           \
-            return *value;                                                                         \
-        }                                                                                          \
-                                                                                                   \
-        return T{};                                                                                \
+        auto &descriptor = ECS_COMPONENT_NAME::export_descriptor();                                \
+        return descriptor.get<I>(data);                                                            \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
@@ -654,7 +388,9 @@ public:                                                                         
 protected:                                                                                         \
     static void _bind_methods() {                                                                  \
         bind_all_fields(                                                                           \
-            std::make_index_sequence<std::tuple_size_v<typename DescriptorType::FieldTypeTuple>>{} \
+            std::make_index_sequence<                                                              \
+                std::tuple_size_v<typename ExportDescriptorType::FieldTypeTuple>                   \
+            >{}                                                                                    \
         );                                                                                         \
     }                                                                                              \
                                                                                                    \
@@ -663,19 +399,19 @@ protected:                                                                      
 private:                                                                                           \
     template <std::size_t I>                                                                       \
     static void bind_field() {                                                                     \
-        using FieldType =                                                                          \
-            std::tuple_element_t<I, typename DescriptorType::FieldTypeTuple>::FieldType;           \
+        using ExposedType =                                                                        \
+            std::tuple_element_t<I, typename ExportDescriptorType::FieldTypeTuple>::ExposedType;   \
                                                                                                    \
-        auto &descriptor = ECS_COMPONENT_NAME::descriptor();                                       \
+        auto &descriptor = ECS_COMPONENT_NAME::export_descriptor();                                \
         auto &field = std::get<I>(descriptor.fields);                                              \
                                                                                                    \
         godot::ClassDB::bind_method(                                                               \
             godot::D_METHOD(field.set_fn, "p_value"),                                              \
-            &GD_ECS_RES_COMPONENT_NAME::set<I, FieldType>                                          \
+            &GD_ECS_RES_COMPONENT_NAME::set<I, ExposedType>                                        \
         );                                                                                         \
         godot::ClassDB::bind_method(                                                               \
             godot::D_METHOD(field.get_fn),                                                         \
-            &GD_ECS_RES_COMPONENT_NAME::get<I, FieldType>                                          \
+            &GD_ECS_RES_COMPONENT_NAME::get<I, ExposedType>                                        \
         );                                                                                         \
                                                                                                    \
         ADD_PROPERTY(field.property_info, field.set_fn, field.get_fn);                             \

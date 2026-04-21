@@ -43,18 +43,18 @@ GD_ECS_ENTITY_DERIVED(E_NodeDerived, E_Node)
 
 struct Data {
     int id{21};
-    godot::String name{"SomeName"};
     float length{21.21f};
-    godot::Dictionary meta{};
+    String name{"SomeName"};
+    Dictionary meta{};
 
     // Default constructor is required by the ECS.
     Data() = default;
 
     GD_ECS_COMPONENT_IMPL(ECS, Data, "Data",
-        godot::C_Field{&Data::id,     godot::Variant::Type::INT,        "id"},
-        godot::C_Field{&Data::name,   godot::Variant::Type::STRING,     "name"},
-        godot::C_Field{&Data::length, godot::Variant::Type::FLOAT,      "length"},
-        godot::C_Field{&Data::meta,   godot::Variant::Type::DICTIONARY, "meta"}
+        ExportByValue{&Data::id,     Variant::Type::INT,        "id"},
+        ExportByValue{&Data::length, Variant::Type::FLOAT,      "length"},
+        ExportAsRef{&Data::name,     Variant::Type::STRING,     "name"},
+        ExportAsRef{&Data::meta,     Variant::Type::DICTIONARY, "meta"}
     )
 };
 
@@ -82,8 +82,8 @@ GD_ECS_RES_COMPONENT(ECS, C_Data, Data)
 // A component that stores basic example data.
 struct DataExtended {
     int id{21};
-    String name{"SomeName"};
     float length{21.21f};
+    String name{"SomeName"};
     Dictionary meta{};
 
     // Default constructor is required by the ECS.
@@ -95,36 +95,42 @@ struct DataExtended {
      * - Resource wrapper components.
      *
      * This function is functionally equivalent to:
-     * GD_ECS_COMPONENT_DESCRIPTOR_IMPL(DataExtended, "DataExtended",
-     *     godot::C_Field{&DataExtended::id,     godot::Variant::Type::INT,        "id"},
-     *     godot::C_Field{&DataExtended::name,   godot::Variant::Type::STRING,     "name"},
-     *     godot::C_Field{&DataExtended::length, godot::Variant::Type::FLOAT,      "length"},
-     *     godot::C_Field{&DataExtended::meta,   godot::Variant::Type::DICTIONARY, "meta"}
+     * GD_ECS_COMPONENT_EXPORT(DataExtended, "DataExtended",
+     *     ExportByValue{&DataExtended::id,     Variant::Type::INT,        "id"},
+     *     ExportByValue{&DataExtended::length, Variant::Type::FLOAT,      "length"},
+     *     ExportAsRef{&DataExtended::name,     Variant::Type::STRING,     "name"},
+     *     ExportAsRef{&DataExtended::meta,     Variant::Type::DICTIONARY, "meta"}
      * )
      */
-    static const auto& descriptor() {
-        static const C_Descriptor descriptor{
+    static const auto& export_descriptor() {
+        static const auto descriptor = ExportDescriptorOfType<DataExtended>::make(
             // ComponentName
             "DataExtended",
 
             // Field with explicit PropertyInfo and setter and getter.
-            C_Field{&DataExtended::id, PropertyInfo(Variant::Type::INT, "id"), "set_id", "get_id"},
+            ExportByValue{
+                &DataExtended::id, PropertyInfo(Variant::Type::INT, "id"), "set_id", "get_id"
+            },
 
             // Field using a simplified constructor with Variant type.
-            C_Field{&DataExtended::name, Variant::Type::STRING, "name", "set_name", "get_name"},
+            ExportByValue{
+                &DataExtended::length, Variant::Type::FLOAT, "length", "set_length", "get_length"
+            },
+            //.with_set(...) // See "godot_cpp_util/core/object/export.hpp"
+            //.with_get(...) // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
             // Field with:
             // - PropertyInfo
-            // - "set_length"
-            // - "get_length"
-            C_Field{&DataExtended::length, PropertyInfo(Variant::Type::FLOAT, "length")},
+            // - "set_name"
+            // - "get_name"
+            ExportAsRef{&DataExtended::name, PropertyInfo(Variant::Type::STRING, "name")},
 
             // Field with:
             // - PropertyInfo(Variant::Type::DICTIONARY, "meta")
             // - "set_meta"
             // - "get_meta"
-            C_Field{&DataExtended::meta, Variant::Type::DICTIONARY, "meta"}
-        };
+            ExportAsRef{&DataExtended::meta, Variant::Type::DICTIONARY, "meta"}
+        );
 
         return descriptor;
     }
@@ -167,7 +173,7 @@ struct Empty {
     GD_ECS_COMPONENT_IMPL(ECS, Empty, "Empty")
 
     // The macros above use these sub-macros:
-    //GD_ECS_COMPONENT_DESCRIPTOR_IMPL(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, __VA_ARGS__)
+    //GD_ECS_COMPONENT_EXPORT(ECS_COMPONENT_NAME, C_DESCRIPTOR_NAME, __VA_ARGS__)
     //GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NAME)
 };
 

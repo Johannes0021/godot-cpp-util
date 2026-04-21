@@ -372,7 +372,7 @@ public:                                                                         
                                                                                                    \
         template<typename T>                                                                       \
         requires (!std::is_empty_v<T>)                                                             \
-                 && godot::gd_ecs_has_component_descriptor<T>                                      \
+                 && godot::gd_ecs_has_export_descriptor<T>                                         \
         void init_emplace_or_replace() {                                                           \
             emplace_or_replace = [](                                                               \
                 const GD_ECS_REGISTRY_TYPE::entity_type &p_entity,                                 \
@@ -381,7 +381,7 @@ public:                                                                         
             {                                                                                      \
                 auto &reg = GD_ECS_SINGLETON_NAME::registry();                                     \
                                                                                                    \
-                auto &descriptor = T::descriptor();                                                \
+                auto &descriptor = T::export_descriptor();                                         \
                 T instance{};                                                                      \
                 descriptor.set_variant(instance, p_data);                                          \
                 reg.emplace_or_replace<T>(p_entity, instance);                                     \
@@ -394,7 +394,7 @@ public:                                                                         
                                                                                                    \
         template<typename T>                                                                       \
         requires (!std::is_empty_v<T>)                                                             \
-                 && (!godot::gd_ecs_has_component_descriptor<T>)                                   \
+                 && (!godot::gd_ecs_has_export_descriptor<T>)                                      \
         void init_emplace_or_replace() {                                                           \
             emplace_or_replace = [](                                                               \
                 const GD_ECS_REGISTRY_TYPE::entity_type&,                                          \
@@ -429,13 +429,13 @@ public:                                                                         
                                                                                                    \
         template<typename T>                                                                       \
         requires (!std::is_empty_v<T>)                                                             \
-                 && godot::gd_ecs_has_component_descriptor<T>                                      \
+                 && godot::gd_ecs_has_export_descriptor<T>                                         \
         void init_get() {                                                                          \
             get = [](const GD_ECS_REGISTRY_TYPE::entity_type &p_entity) -> godot::Variant {        \
                 auto &reg = GD_ECS_SINGLETON_NAME::registry();                                     \
                                                                                                    \
                 if (auto *instance = reg.try_get<T>(p_entity)) {                                   \
-                    auto &descriptor = T::descriptor();                                            \
+                    auto &descriptor = T::export_descriptor();                                     \
                     return descriptor.to_variant(*instance);                                       \
                 }                                                                                  \
                                                                                                    \
@@ -447,7 +447,7 @@ public:                                                                         
                                                                                                    \
         template<typename T>                                                                       \
         requires std::is_empty_v<T>                                                                \
-                 || (!godot::gd_ecs_has_component_descriptor<T>)                                   \
+                 || (!godot::gd_ecs_has_export_descriptor<T>)                                      \
         void init_get() {                                                                          \
             get = [](const GD_ECS_REGISTRY_TYPE::entity_type&) -> godot::Variant {                 \
                 return godot::Variant{};                                                           \
@@ -474,7 +474,7 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
     template<typename T>                                                                           \
-    requires godot::gd_ecs_has_component_descriptor<T>                                             \
+    requires godot::gd_ecs_has_export_descriptor<T>                                                \
     static void register_type() {                                                                  \
         Entry entry{};                                                                             \
         register_type_with_entry<T>(entry);                                                        \
@@ -483,11 +483,11 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
     template<typename T>                                                                           \
-    requires godot::gd_ecs_has_component_descriptor<T>                                             \
+    requires godot::gd_ecs_has_export_descriptor<T>                                                \
     static void register_type_with_entry(Entry& p_entry) {                                         \
         static ComponentIndex component_index = component_names().size();                          \
                                                                                                    \
-        auto &descriptor = T::descriptor();                                                        \
+        auto &descriptor = T::export_descriptor();                                                 \
                                                                                                    \
         p_entry.init_uninit<T>(component_index);                                                   \
                                                                                                    \
