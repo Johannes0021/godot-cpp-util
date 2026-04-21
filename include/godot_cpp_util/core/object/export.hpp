@@ -83,7 +83,7 @@
  *         // - PropertyInfo
  *         // - "set_name"
  *         // - "get_name"
- *         ExportAsRef{&Data::name, PropertyInfo(Variant::Type::STRING, "name")}
+ *         ExportByRef{&Data::name, PropertyInfo(Variant::Type::STRING, "name")}
  *             .with_set(&Data::set_name)
  *             .with_get(&Data::get_name),
  *
@@ -91,7 +91,7 @@
  *         // - PropertyInfo(Variant::Type::DICTIONARY, "meta")
  *         // - "set_meta"
  *         // - "get_meta"
- *         ExportAsRef{&Data::meta, Variant::Type::DICTIONARY, "meta"}
+ *         ExportByRef{&Data::meta, Variant::Type::DICTIONARY, "meta"}
  *     )
  *
  *     // Binds all exported fields declared in GD_EXPORT.
@@ -138,7 +138,7 @@ namespace godot {
 //==================================================================================================
 
 struct ExportByValueMarker {};
-struct ExportAsRefMarker {};
+struct ExportByRefMarker {};
 
 template<typename T, typename ValuePolicy>
 struct ExportType;
@@ -149,7 +149,7 @@ struct ExportType<T, ExportByValueMarker> {
 };
 
 template<typename T>
-struct ExportType<T, ExportAsRefMarker> {
+struct ExportType<T, ExportByRefMarker> {
     using Type = const T&;
 };
 
@@ -174,6 +174,7 @@ struct ExportField final {
     godot::StringName get_fn{};
     SetFn set_fn_impl = nullptr;
     GetFn get_fn_impl = nullptr;
+
 
 
     ExportField(
@@ -249,7 +250,7 @@ using ExportByValue = ExportField<StructType, FieldType, ExportByValueMarker>;
 
 
 template<typename StructType, typename FieldType>
-using ExportAsRef = ExportField<StructType, FieldType, ExportAsRefMarker>;
+using ExportByRef = ExportField<StructType, FieldType, ExportByRefMarker>;
 
 
 
@@ -448,6 +449,10 @@ struct ExportDescriptorOfType final {
 } // namespace godot
 
 
+
+//==================================================================================================
+// GD_EXPORT
+//==================================================================================================
 
 #define GD_EXPORT(CLASS_TYPE, ...)                                                                 \
 using ExportDescriptorType = std::remove_reference_t<decltype(                                     \

@@ -53,8 +53,8 @@ struct Data {
     GD_ECS_COMPONENT_IMPL(ECS, Data, "Data",
         ExportByValue{&Data::id,     Variant::Type::INT,        "id"},
         ExportByValue{&Data::length, Variant::Type::FLOAT,      "length"},
-        ExportAsRef{&Data::name,     Variant::Type::STRING,     "name"},
-        ExportAsRef{&Data::meta,     Variant::Type::DICTIONARY, "meta"}
+        ExportByRef{&Data::name,     Variant::Type::STRING,     "name"},
+        ExportByRef{&Data::meta,     Variant::Type::DICTIONARY, "meta"}
     )
 };
 
@@ -98,8 +98,8 @@ struct DataExtended {
      * GD_ECS_COMPONENT_EXPORT(DataExtended, "DataExtended",
      *     ExportByValue{&DataExtended::id,     Variant::Type::INT,        "id"},
      *     ExportByValue{&DataExtended::length, Variant::Type::FLOAT,      "length"},
-     *     ExportAsRef{&DataExtended::name,     Variant::Type::STRING,     "name"},
-     *     ExportAsRef{&DataExtended::meta,     Variant::Type::DICTIONARY, "meta"}
+     *     ExportByRef{&DataExtended::name,     Variant::Type::STRING,     "name"},
+     *     ExportByRef{&DataExtended::meta,     Variant::Type::DICTIONARY, "meta"}
      * )
      */
     static const auto& export_descriptor() {
@@ -123,13 +123,13 @@ struct DataExtended {
             // - PropertyInfo
             // - "set_name"
             // - "get_name"
-            ExportAsRef{&DataExtended::name, PropertyInfo(Variant::Type::STRING, "name")},
+            ExportByRef{&DataExtended::name, PropertyInfo(Variant::Type::STRING, "name")},
 
             // Field with:
             // - PropertyInfo(Variant::Type::DICTIONARY, "meta")
             // - "set_meta"
             // - "get_meta"
-            ExportAsRef{&DataExtended::meta, Variant::Type::DICTIONARY, "meta"}
+            ExportByRef{&DataExtended::meta, Variant::Type::DICTIONARY, "meta"}
         );
 
         return descriptor;

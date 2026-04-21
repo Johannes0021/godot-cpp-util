@@ -151,8 +151,8 @@ void gd_ecs_emplace_or_replace_maybe_empty_type(
  *     GD_ECS_COMPONENT_EXPORT(Data, "DataComponentName",
  *         godot::ExportByValue{&Data::id,     godot::Variant::Type::INT,        "id"},
  *         godot::ExportByValue{&Data::length, godot::Variant::Type::FLOAT,      "length"},
- *         godot::ExportAsRef{&Data::name,     godot::Variant::Type::STRING,     "name"},
- *         godot::ExportAsRef{&Data::meta,     godot::Variant::Type::DICTIONARY, "meta"}
+ *         godot::ExportByRef{&Data::name,     godot::Variant::Type::STRING,     "name"},
+ *         godot::ExportByRef{&Data::meta,     godot::Variant::Type::DICTIONARY, "meta"}
  *     )
  * };
  */
@@ -218,9 +218,9 @@ static void emplace_or_replace(                                                 
  *
  *     GD_ECS_COMPONENT_IMPL(ECSType, Data, "ComponentName",
  *         godot::ExportByValue{&Data::id,     godot::Variant::Type::INT,        "id"},
- *         godot::ExportAsRef{&Data::name,     godot::Variant::Type::STRING,     "name"},
+ *         godot::ExportByRef{&Data::name,     godot::Variant::Type::STRING,     "name"},
  *         godot::ExportByValue{&Data::length, godot::Variant::Type::FLOAT,      "length"},
- *         godot::ExportAsRef{&Data::meta,     godot::Variant::Type::DICTIONARY, "meta"}
+ *         godot::ExportByRef{&Data::meta,     godot::Variant::Type::DICTIONARY, "meta"}
  *     )
  * };
  */
@@ -248,9 +248,9 @@ GD_ECS_COMPONENT_EMPLACE_OR_REPLACE_IMPL(GD_ECS_SINGLETON_TYPE, ECS_COMPONENT_NA
  *
  *     GD_ECS_COMPONENT_IMPL(ECSType, Data, "ComponentName",
  *         godot::ExportByValue{&Data::id,     godot::Variant::Type::INT,        "id"},
- *         godot::ExportAsRef{&Data::name,     godot::Variant::Type::STRING,     "name"},
+ *         godot::ExportByRef{&Data::name,     godot::Variant::Type::STRING,     "name"},
  *         godot::ExportByValue{&Data::length, godot::Variant::Type::FLOAT,      "length"},
- *         godot::ExportAsRef{&Data::meta,     godot::Variant::Type::DICTIONARY, "meta"}
+ *         godot::ExportByRef{&Data::meta,     godot::Variant::Type::DICTIONARY, "meta"}
  *     )
  * };
  *
@@ -298,7 +298,7 @@ class GD_ECS_RES_COMPONENT_NAME : public GD_ECS_RES_COMPONENT_PARENT_TYPE {     
         "    static const auto& export_descriptor() {\n"                                           \
         "        static const godot::ExportDescriptor descriptor{\n"                               \
         "            \"" #ECS_COMPONENT_NAME "ComponentName\",\n"                                  \
-        "            godot::ExportAsRef{&"                                                         \
+        "            godot::ExportByRef{&"                                                         \
                          #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"},\n"  \
         "        };\n"                                                                             \
         "\n"                                                                                       \
@@ -321,7 +321,7 @@ class GD_ECS_RES_COMPONENT_NAME : public GD_ECS_RES_COMPONENT_PARENT_TYPE {     
         "\n"                                                                                       \
         "    GD_ECS_COMPONENT_IMPL(" #GD_ECS_SINGLETON_TYPE ", " #ECS_COMPONENT_NAME ", \""        \
                  #ECS_COMPONENT_NAME "ComponentName\",\n"                                          \
-        "        godot::ExportAsRef{&"                                                             \
+        "        godot::ExportByRef{&"                                                             \
                      #ECS_COMPONENT_NAME "::example, godot::Variant::STRING, \"example\"}\n"       \
         "    )\n"                                                                                  \
         "};\n\n\n"                                                                                 \
