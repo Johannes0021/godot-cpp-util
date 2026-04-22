@@ -103,7 +103,8 @@ struct DataExtended {
      * )
      */
     static const auto& export_descriptor() {
-        static const auto descriptor = ExportDescriptorOfType<DataExtended>::make(
+        //static const auto descriptor = ExportDescriptorOfType<DataExtended>::make(
+        static const auto descriptor = ExportDescriptor{
             // ComponentName
             "DataExtended",
 
@@ -130,7 +131,7 @@ struct DataExtended {
             // - "set_meta"
             // - "get_meta"
             ExportByRef{&DataExtended::meta, Variant::Type::DICTIONARY, "meta"}
-        );
+        };
 
         return descriptor;
     }

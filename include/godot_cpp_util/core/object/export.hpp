@@ -434,6 +434,12 @@ private:
 
 
 
+template<typename FirstField, typename... RestFields>
+ExportDescriptor(const godot::StringName&, const FirstField&, const RestFields&...)
+    -> ExportDescriptor<typename FirstField::StructType, FirstField, RestFields...>;
+
+
+
 template <typename StructType>
 struct ExportDescriptorOfType final {
 
