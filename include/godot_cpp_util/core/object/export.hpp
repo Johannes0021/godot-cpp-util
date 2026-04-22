@@ -267,7 +267,7 @@ struct ExportDescriptor final {
 
     static_assert(
         (std::is_same_v<typename Fields::StructType, StructType> && ...),
-        "All ExportField types must use the same StructType as ExportDescriptor"
+        "All ExportField types must use the same StructType as ExportDescriptor."
     );
 
 
@@ -386,10 +386,9 @@ private:
     ) const {
         auto &field = std::get<I>(fields);
 
-        const godot::String key = field.property_info.name;
-        if (p_dictionary.has(key)) {
+        if (p_dictionary.has(field.property_info.name)) {
             using FieldType = std::tuple_element_t<I, FieldTypeTuple>::FieldType;
-            FieldType value = p_dictionary[key];
+            FieldType value = p_dictionary[field.property_info.name];
             set<I>(p_instance, value);
         }
     }
