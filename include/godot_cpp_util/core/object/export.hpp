@@ -77,7 +77,10 @@
  *             .with_get(&Data::get_id),
  *
  *         // Field using a simplified constructor with Variant type.
- *         ExportByValue{&Data::length, Variant::Type::FLOAT, "length", "set_length", "get_length"},
+ *         ExportByValue{&Data::length, Variant::Type::FLOAT, "length", "set_length", "get_length"}
+ *             .remove_export_flags(ExportFlags::AddPropertyEditor),
+ *             //.with_export_flags(...)
+ *             //.add_export_flags(...)
  *
  *         // Field with:
  *         // - PropertyInfo
@@ -116,10 +119,13 @@
 
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
+#include "godot_cpp/classes/engine.hpp"
 #include "godot_cpp/core/class_db.hpp"
 #include "godot_cpp/core/property_info.hpp"
 #include "godot_cpp/variant/dictionary.hpp"
@@ -127,9 +133,122 @@
 #include "godot_cpp/variant/string_name.hpp"
 #include "godot_cpp/variant/variant.hpp"
 
+#include "godot_cpp_util/core/ptr.hpp"
+
 
 
 namespace godot {
+
+
+
+//==================================================================================================
+// ExportFlags
+//==================================================================================================
+
+enum class ExportFlags : uint8_t {
+    None              = 0,
+    WithSet           = 1u << 0,
+    AddPropertyEditor = 1u << 1,
+    AddPropertyRemote = 1u << 2,
+};
+
+
+
+using ExportFlagsType = std::underlying_type_t<ExportFlags>;
+
+
+
+constexpr ExportFlags operator|(ExportFlags p_a, ExportFlags p_b) {
+    return static_cast<ExportFlags>(
+        static_cast<ExportFlagsType>(p_a) | static_cast<ExportFlagsType>(p_b)
+    );
+}
+
+
+
+constexpr ExportFlags& operator|=(ExportFlags &p_a, ExportFlags p_b) {
+    p_a = p_a | p_b;
+    return p_a;
+}
+
+
+
+constexpr ExportFlags operator&(ExportFlags p_a, ExportFlags p_b) {
+    return static_cast<ExportFlags>(
+        static_cast<ExportFlagsType>(p_a) & static_cast<ExportFlagsType>(p_b)
+    );
+}
+
+
+
+constexpr ExportFlags& operator&=(ExportFlags &p_a, ExportFlags p_b) {
+    p_a = p_a & p_b;
+    return p_a;
+}
+
+
+
+constexpr ExportFlags operator~(ExportFlags p_a) {
+    return static_cast<ExportFlags>(~static_cast<ExportFlagsType>(p_a));
+}
+
+
+
+inline constexpr ExportFlags DefaultExportFlags =
+    ExportFlags::WithSet
+    | ExportFlags::AddPropertyEditor
+    | ExportFlags::AddPropertyRemote;
+
+
+
+//==================================================================================================
+// ExportFlagSet
+//==================================================================================================
+
+class ExportFlagSet final {
+
+private:
+    ExportFlags m_value{ExportFlags::None};
+
+
+
+public:
+    constexpr ExportFlagSet() = default;
+    constexpr ExportFlagSet(ExportFlags p_flags) : m_value(p_flags) {}
+
+
+
+    constexpr ExportFlags raw() const {
+        return m_value;
+    }
+
+
+
+    constexpr ExportFlagSet& add(ExportFlags p_flags) {
+        m_value |= p_flags;
+        return *this;
+    }
+
+
+
+    constexpr ExportFlagSet& remove(ExportFlags p_flags) {
+        m_value &= ~p_flags;
+        return *this;
+    }
+
+
+
+    constexpr bool any_of(ExportFlags p_flags) const {
+        return (m_value & p_flags) != ExportFlags::None;
+    }
+
+
+
+    constexpr bool all_of(ExportFlags p_flags) const {
+        return (m_value & p_flags) == p_flags;
+    }
+
+};
 
 
 
@@ -174,6 +293,7 @@ struct ExportField final {
     godot::StringName get_fn{};
     SetFn set_fn_impl = nullptr;
     GetFn get_fn_impl = nullptr;
+    ExportFlagSet export_flags{DefaultExportFlags};
 
 
 
@@ -237,6 +357,27 @@ struct ExportField final {
 
     ExportField& with_get(GetFn p_get_fn) {
         get_fn_impl = p_get_fn;
+        return *this;
+    }
+
+
+
+    ExportField& with_export_flags(ExportFlags p_flags) {
+        export_flags = p_flags;
+        return *this;
+    }
+
+
+
+    ExportField& add_export_flags(ExportFlags p_flags) {
+        export_flags.add(p_flags);
+        return *this;
+    }
+
+
+
+    ExportField& remove_export_flags(ExportFlags p_flags) {
+        export_flags.remove(p_flags);
         return *this;
     }
 
@@ -505,16 +646,48 @@ static void bind_export_field() {                                               
     auto &descriptor = CLASS_TYPE::export_descriptor();                                            \
     auto &field = std::get<I>(descriptor.fields);                                                  \
                                                                                                    \
-    godot::ClassDB::bind_method(                                                                   \
-        godot::D_METHOD(field.set_fn, "p_value"),                                                  \
-        &CLASS_TYPE::set_export_field<I, ExposedType>                                              \
-    );                                                                                             \
+    if (field.export_flags.all_of(ExportFlags::WithSet)) {                                         \
+        godot::ClassDB::bind_method(                                                               \
+            godot::D_METHOD(field.set_fn, "p_value"),                                              \
+            &CLASS_TYPE::set_export_field<I, ExposedType>                                          \
+        );                                                                                         \
+    }                                                                                              \
+                                                                                                   \
     godot::ClassDB::bind_method(                                                                   \
         godot::D_METHOD(field.get_fn),                                                             \
         &CLASS_TYPE::get_export_field<I, ExposedType>                                              \
     );                                                                                             \
                                                                                                    \
-    ADD_PROPERTY(field.property_info, field.set_fn, field.get_fn);                                 \
+    bool add_property =                                                                            \
+        field.export_flags.all_of(ExportFlags::AddPropertyEditor | ExportFlags::AddPropertyRemote);\
+                                                                                                   \
+    if (                                                                                           \
+        !add_property                                                                              \
+        && field.export_flags.any_of(                                                              \
+            ExportFlags::AddPropertyEditor | ExportFlags::AddPropertyRemote                        \
+        )                                                                                          \
+    ) {                                                                                            \
+        auto engine = Ptr<godot::Engine>{godot::Engine::get_singleton()};                          \
+        bool is_editor_hint = engine && engine->is_editor_hint();                                  \
+        add_property =                                                                             \
+            (                                                                                      \
+                is_editor_hint                                                                     \
+                && field.export_flags.all_of(ExportFlags::AddPropertyEditor)                       \
+            )                                                                                      \
+            || (                                                                                   \
+                !is_editor_hint                                                                    \
+                && field.export_flags.all_of(ExportFlags::AddPropertyRemote)                       \
+            );                                                                                     \
+    }                                                                                              \
+                                                                                                   \
+    if (add_property) {                                                                            \
+        if (field.export_flags.all_of(ExportFlags::WithSet)) {                                     \
+            ADD_PROPERTY(field.property_info, field.set_fn, field.get_fn);                         \
+        }                                                                                          \
+        else {                                                                                     \
+            ADD_PROPERTY(field.property_info, "", field.get_fn);                                   \
+        }                                                                                          \
+    }                                                                                              \
 }                                                                                                  \
                                                                                                    \
                                                                                                    \

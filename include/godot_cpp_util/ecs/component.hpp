@@ -37,6 +37,9 @@
 #include <tuple>
 #include <utility>
 
+#include "godot_cpp/classes/engine.hpp"
+
+#include "godot_cpp_util/core/ptr.hpp"
 #include "godot_cpp_util/core/object/export.hpp"
 
 #include "signal_macros.hpp"
@@ -405,16 +408,49 @@ private:                                                                        
         auto &descriptor = ECS_COMPONENT_NAME::export_descriptor();                                \
         auto &field = std::get<I>(descriptor.fields);                                              \
                                                                                                    \
-        godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD(field.set_fn, "p_value"),                                              \
-            &GD_ECS_RES_COMPONENT_NAME::set<I, ExposedType>                                        \
-        );                                                                                         \
+        if (field.export_flags.all_of(ExportFlags::WithSet)) {                                     \
+            godot::ClassDB::bind_method(                                                           \
+                godot::D_METHOD(field.set_fn, "p_value"),                                          \
+                &GD_ECS_RES_COMPONENT_NAME::set<I, ExposedType>                                    \
+            );                                                                                     \
+        }                                                                                          \
+                                                                                                   \
         godot::ClassDB::bind_method(                                                               \
             godot::D_METHOD(field.get_fn),                                                         \
             &GD_ECS_RES_COMPONENT_NAME::get<I, ExposedType>                                        \
         );                                                                                         \
                                                                                                    \
-        ADD_PROPERTY(field.property_info, field.set_fn, field.get_fn);                             \
+        bool add_property = field.export_flags.all_of(                                             \
+            ExportFlags::AddPropertyEditor | ExportFlags::AddPropertyRemote                        \
+        );                                                                                         \
+                                                                                                   \
+        if (                                                                                       \
+            !add_property                                                                          \
+            && field.export_flags.any_of(                                                          \
+                ExportFlags::AddPropertyEditor | ExportFlags::AddPropertyRemote                    \
+            )                                                                                      \
+        ) {                                                                                        \
+            auto engine = Ptr<godot::Engine>{godot::Engine::get_singleton()};                      \
+            bool is_editor_hint = engine && engine->is_editor_hint();                              \
+            add_property =                                                                         \
+                (                                                                                  \
+                    is_editor_hint                                                                 \
+                    && field.export_flags.all_of(ExportFlags::AddPropertyEditor)                   \
+                )                                                                                  \
+                || (                                                                               \
+                    !is_editor_hint                                                                \
+                    && field.export_flags.all_of(ExportFlags::AddPropertyRemote)                   \
+                );                                                                                 \
+        }                                                                                          \
+                                                                                                   \
+        if (add_property) {                                                                        \
+            if (field.export_flags.all_of(ExportFlags::WithSet)) {                                 \
+                ADD_PROPERTY(field.property_info, field.set_fn, field.get_fn);                     \
+            }                                                                                      \
+            else {                                                                                 \
+                ADD_PROPERTY(field.property_info, "", field.get_fn);                               \
+            }                                                                                      \
+        }                                                                                          \
     }                                                                                              \
                                                                                                    \
                                                                                                    \

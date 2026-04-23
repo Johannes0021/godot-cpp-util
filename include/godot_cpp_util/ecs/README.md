@@ -117,8 +117,11 @@ struct DataExtended {
             ExportByValue{
                 &DataExtended::length, Variant::Type::FLOAT, "length", "set_length", "get_length"
             },
-            //.with_set(...) // See "godot_cpp_util/core/object/export.hpp"
-            //.with_get(...) // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            //.with_set(...)            // See "godot_cpp_util/core/object/export.hpp"
+            //.with_get(...)            // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            //.with_export_flags(...)   // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            //.add_export_flags(...)    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+            //.remove_export_flags(...) // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
             // Field with:
             // - PropertyInfo

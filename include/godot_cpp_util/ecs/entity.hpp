@@ -35,9 +35,9 @@
 
 #include <type_traits>
 
-#include <godot_cpp/classes/engine.hpp>
+#include "godot_cpp/classes/engine.hpp"
 #include "godot_cpp/classes/node.hpp"
-#include <godot_cpp/classes/os.hpp>
+#include "godot_cpp/classes/os.hpp"
 #include "godot_cpp/core/class_db.hpp"
 #include "godot_cpp/core/error_macros.hpp"
 #include "godot_cpp/variant/array.hpp"
@@ -46,6 +46,7 @@
 #include "godot_cpp/variant/string_name.hpp"
 #include "godot_cpp/variant/variant.hpp"
 
+#include "godot_cpp_util/core/ptr.hpp"
 #include "godot_cpp_util/core/string/static_string_name.hpp"
 
 #include "component.hpp"
@@ -368,8 +369,8 @@ protected:                                                                      
         );                                                                                         \
                                                                                                    \
         {                                                                                          \
-            godot::Engine *engine = godot::Engine::get_singleton();                                \
-            godot::OS *os = godot::OS::get_singleton();                                            \
+            auto engine = Ptr<godot::Engine>{godot::Engine::get_singleton()};                      \
+            auto os = Ptr<godot::OS>{godot::OS::get_singleton()};                                  \
             if (engine && os && !engine->is_editor_hint() && os->is_debug_build()) {               \
                 ADD_PROPERTY(                                                                      \
                     godot::PropertyInfo(                                                           \
