@@ -145,7 +145,7 @@ namespace godot {
 // ExportFlags
 //==================================================================================================
 
-enum class ExportFlags : uint8_t {
+enum class ExportFlags : std::uint8_t {
     None              = 0,
     WithSet           = 1u << 0,
     AddPropertyEditor = 1u << 1,
