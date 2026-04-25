@@ -57,10 +57,10 @@ struct Data {
      * declarations before this macro is instantiated.
      */
     GD_ECS_COMPONENT_IMPL(ECS, Data, "Data",
-        ExportByValue{&Data::id,           Variant::Type::INT,        "id"},
-        ExportByValue{&Data::length,       Variant::Type::FLOAT,      "length"},
-        ExportByRef{&Data::name,           Variant::Type::STRING,     "name"},
-        ExportByRef{&Data::meta,           Variant::Type::DICTIONARY, "meta"}
+        ExportByValue{&Data::id,     Variant::Type::INT,        "id"},
+        ExportByValue{&Data::length, Variant::Type::FLOAT,      "length"},
+        ExportByRef{&Data::name,     Variant::Type::STRING,     "name"},
+        ExportByRef{&Data::meta,     Variant::Type::DICTIONARY, "meta"}
     )
 };
 
