@@ -50,11 +50,17 @@ struct Data {
     // Default constructor is required by the ECS.
     Data() = default;
 
+    /**
+     * IMPORTANT:
+     * GD_ECS_COMPONENT_IMPL must appear after all exported members and all setter and getter
+     * functions have been declared. The compiler must see everything referenced by the export
+     * declarations before this macro is instantiated.
+     */
     GD_ECS_COMPONENT_IMPL(ECS, Data, "Data",
-        ExportByValue{&Data::id,     Variant::Type::INT,        "id"},
-        ExportByValue{&Data::length, Variant::Type::FLOAT,      "length"},
-        ExportByRef{&Data::name,     Variant::Type::STRING,     "name"},
-        ExportByRef{&Data::meta,     Variant::Type::DICTIONARY, "meta"}
+        ExportByValue{&Data::id,           Variant::Type::INT,        "id"},
+        ExportByValue{&Data::length,       Variant::Type::FLOAT,      "length"},
+        ExportByRef{&Data::name,           Variant::Type::STRING,     "name"},
+        ExportByRef{&Data::meta,           Variant::Type::DICTIONARY, "meta"}
     )
 };
 
@@ -134,6 +140,11 @@ struct DataExtended {
             // - "set_meta"
             // - "get_meta"
             ExportByRef{&DataExtended::meta, Variant::Type::DICTIONARY, "meta"}
+
+           // For more constructors, see ExportField.
+           // Some variants only provide set and get accessors, while others provide only get.
+           // In the get-only case, no class template argument deduction guide is available,
+           // so the type must be specified explicitly, e.g. ExportByValue<T, R>{...}.
         };
 
         return descriptor;

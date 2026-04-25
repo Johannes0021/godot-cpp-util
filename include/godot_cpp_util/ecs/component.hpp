@@ -402,21 +402,23 @@ protected:                                                                      
 private:                                                                                           \
     template <std::size_t I>                                                                       \
     static void bind_field() {                                                                     \
-        using ExposedType =                                                                        \
-            std::tuple_element_t<I, typename ExportDescriptorType::FieldTypeTuple>::ExposedType;   \
+        using ExposedType = typename std::tuple_element_t<                                         \
+            I,                                                                                     \
+            typename ExportDescriptorType::FieldTypeTuple                                          \
+        >::ExposedType;                                                                            \
                                                                                                    \
         auto &descriptor = ECS_COMPONENT_NAME::export_descriptor();                                \
         auto &field = std::get<I>(descriptor.fields);                                              \
                                                                                                    \
         if (field.export_flags.all_of(ExportFlags::WithSet)) {                                     \
             godot::ClassDB::bind_method(                                                           \
-                godot::D_METHOD(field.set_fn, "p_value"),                                          \
+                godot::D_METHOD(field.set_fn_name, "p_value"),                                     \
                 &GD_ECS_RES_COMPONENT_NAME::set<I, ExposedType>                                    \
             );                                                                                     \
         }                                                                                          \
                                                                                                    \
         godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD(field.get_fn),                                                         \
+            godot::D_METHOD(field.get_fn_name),                                                    \
             &GD_ECS_RES_COMPONENT_NAME::get<I, ExposedType>                                        \
         );                                                                                         \
                                                                                                    \
@@ -445,10 +447,10 @@ private:                                                                        
                                                                                                    \
         if (add_property) {                                                                        \
             if (field.export_flags.all_of(ExportFlags::WithSet)) {                                 \
-                ADD_PROPERTY(field.property_info, field.set_fn, field.get_fn);                     \
+                ADD_PROPERTY(field.property_info, field.set_fn_name, field.get_fn_name);           \
             }                                                                                      \
             else {                                                                                 \
-                ADD_PROPERTY(field.property_info, "", field.get_fn);                               \
+                ADD_PROPERTY(field.property_info, "", field.get_fn_name);                          \
             }                                                                                      \
         }                                                                                          \
     }                                                                                              \

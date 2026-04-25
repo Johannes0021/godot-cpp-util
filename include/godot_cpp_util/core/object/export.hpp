@@ -22,6 +22,7 @@
  *     float length{21.21f};
  *     godot::String name{"SomeName"};
  *     godot::Dictionary meta{};
+ *     const godot::String read_only_name{"SomeReadOnlyName"};
  *
  * public:
  *     // These explicit getter and setter functions may look like extra boilerplate.
@@ -94,7 +95,14 @@
  *         // - PropertyInfo(Variant::Type::DICTIONARY, "meta")
  *         // - "set_meta"
  *         // - "get_meta"
- *         ExportByRef{&Data::meta, Variant::Type::DICTIONARY, "meta"}
+ *         ExportByRef{&Data::meta, Variant::Type::DICTIONARY, "meta"},
+ *
+ *         ExportByRef{&Data::read_only_name, Variant::Type::STRING, "read_only_name"}
+ *
+ *         // For more constructors, see ExportField.
+ *         // Some variants only provide set and get accessors, while others provide only get.
+ *         // In the get-only case, no class template argument deduction guide is available,
+ *         // so the type must be specified explicitly, e.g. ExportByValue<T, R>{...}.
  *     )
  *
  *     // Binds all exported fields declared in GD_EXPORT.
@@ -272,6 +280,13 @@ struct ExportType<T, ExportByRefMarker> {
     using Type = const T&;
 };
 
+template<typename ExposedType>
+using ExportValuePolicyFor = std::conditional_t<
+    std::is_reference_v<ExposedType>,
+    ExportByRefMarker,
+    ExportByValueMarker
+>;
+
 
 
 template<typename StructT, typename FieldT, typename ValuePolicy>
@@ -279,34 +294,38 @@ struct ExportField final {
     using StructType = StructT;
     using FieldType = FieldT;
 
-    using ExposedType = typename ExportType<FieldType, ValuePolicy>::Type;
+    using ExposedType = typename ExportType<std::remove_cvref_t<FieldT>, ValuePolicy>::Type;
 
     using MemberPtr = FieldType StructType::*;
+    // Deduction guides depend on the exact SetFn and GetFn signatures.
+    // Changing these requires updating the guides.
     using SetFn = void (StructType::*)(ExposedType);
     using GetFn = ExposedType (StructType::*)() const;
 
 
 
     MemberPtr member = nullptr;
-    godot::PropertyInfo property_info{};
-    godot::StringName set_fn{};
-    godot::StringName get_fn{};
     SetFn set_fn_impl = nullptr;
     GetFn get_fn_impl = nullptr;
+    godot::PropertyInfo property_info{};
+    godot::StringName set_fn_name{};
+    godot::StringName get_fn_name{};
     ExportFlagSet export_flags{DefaultExportFlags};
 
 
 
+// MemberPtr ---------------------------------------------------------------------------------------
+
     ExportField(
         MemberPtr p_member,
         const godot::PropertyInfo &p_property_info,
-        const godot::StringName &p_set_fn,
-        const godot::StringName &p_get_fn
+        const godot::StringName &p_set_fn_name,
+        const godot::StringName &p_get_fn_name
     )
         : member(p_member)
         , property_info(p_property_info)
-        , set_fn(p_set_fn)
-        , get_fn(p_get_fn)
+        , set_fn_name(p_set_fn_name)
+        , get_fn_name(p_get_fn_name)
     {}
 
 
@@ -315,13 +334,13 @@ struct ExportField final {
         MemberPtr p_member,
         godot::Variant::Type p_type,
         const godot::StringName &p_name,
-        const godot::StringName &p_set_fn,
-        const godot::StringName &p_get_fn
+        const godot::StringName &p_set_fn_name,
+        const godot::StringName &p_get_fn_name
     )
         : member(p_member)
         , property_info(godot::PropertyInfo(p_type, p_name))
-        , set_fn(p_set_fn)
-        , get_fn(p_get_fn)
+        , set_fn_name(p_set_fn_name)
+        , get_fn_name(p_get_fn_name)
     {}
 
 
@@ -329,34 +348,145 @@ struct ExportField final {
     ExportField(MemberPtr p_member, const godot::PropertyInfo &p_property_info)
         : member(p_member)
         , property_info(p_property_info)
-        , set_fn(godot::String{"set_"} + p_property_info.name)
-        , get_fn(godot::String{"get_"} + p_property_info.name)
+        , get_fn_name(godot::String{"get_"} + p_property_info.name)
+    {
+        if constexpr (!std::is_const_v<FieldType>) {
+            set_fn_name = godot::String{"set_"} + p_property_info.name;
+        }
+    }
+
+
+
+    ExportField(MemberPtr p_member, godot::Variant::Type p_type, const godot::StringName &p_name)
+        : member(p_member)
+        , property_info(godot::PropertyInfo(p_type, p_name))
+        , get_fn_name(godot::String{"get_"} + p_name)
+    {
+        if constexpr (!std::is_const_v<FieldType>) {
+            set_fn_name = godot::String{"set_"} + p_name;
+        }
+    }
+
+
+
+// SetFn and GetFn ---------------------------------------------------------------------------------
+
+    ExportField(
+        SetFn p_set_fn_impl,
+        GetFn p_get_fn_impl,
+        const godot::PropertyInfo &p_property_info,
+        const godot::StringName &p_set_fn_name,
+        const godot::StringName &p_get_fn_name
+    )
+        : set_fn_impl(p_set_fn_impl)
+        , get_fn_impl(p_get_fn_impl)
+        , property_info(p_property_info)
+        , set_fn_name(p_set_fn_name)
+        , get_fn_name(p_get_fn_name)
     {}
 
 
 
     ExportField(
-        MemberPtr p_member,
+        SetFn p_set_fn_impl,
+        GetFn p_get_fn_impl,
         godot::Variant::Type p_type,
-        const godot::StringName &p_name
+        const godot::StringName &p_name,
+        const godot::StringName &p_set_fn_name,
+        const godot::StringName &p_get_fn_name
     )
-        : member(p_member)
+        : set_fn_impl(p_set_fn_impl)
+        , get_fn_impl(p_get_fn_impl)
         , property_info(godot::PropertyInfo(p_type, p_name))
-        , set_fn(godot::String{"set_"} + p_name)
-        , get_fn(godot::String{"get_"} + p_name)
+        , set_fn_name(p_set_fn_name)
+        , get_fn_name(p_get_fn_name)
     {}
 
 
 
-    ExportField& with_set(SetFn p_set_fn) {
-        set_fn_impl = p_set_fn;
+    ExportField(
+        SetFn p_set_fn_impl,
+        GetFn p_get_fn_impl,
+        const godot::PropertyInfo &p_property_info
+    )
+        : set_fn_impl(p_set_fn_impl)
+        , get_fn_impl(p_get_fn_impl)
+        , property_info(p_property_info)
+        , set_fn_name(godot::String{"set_"} + p_property_info.name)
+        , get_fn_name(godot::String{"get_"} + p_property_info.name)
+    {}
+
+
+
+    ExportField(
+        SetFn p_set_fn_impl,
+        GetFn p_get_fn_impl,
+        godot::Variant::Type p_type,
+        const godot::StringName &p_name
+    )
+        : set_fn_impl(p_set_fn_impl)
+        , get_fn_impl(p_get_fn_impl)
+        , property_info(godot::PropertyInfo(p_type, p_name))
+        , set_fn_name(godot::String{"set_"} + p_name)
+        , get_fn_name(godot::String{"get_"} + p_name)
+    {}
+
+
+
+// GetFn -------------------------------------------------------------------------------------------
+
+    ExportField(
+        GetFn p_get_fn_impl,
+        const godot::PropertyInfo &p_property_info,
+        const godot::StringName &p_get_fn_name
+    )
+        : get_fn_impl(p_get_fn_impl)
+        , property_info(p_property_info)
+        , get_fn_name(p_get_fn_name)
+    {}
+
+
+
+    ExportField(
+        GetFn p_get_fn_impl,
+        godot::Variant::Type p_type,
+        const godot::StringName &p_name,
+        const godot::StringName &p_get_fn_name
+    )
+        : get_fn_impl(p_get_fn_impl)
+        , property_info(godot::PropertyInfo(p_type, p_name))
+        , get_fn_name(p_get_fn_name)
+    {}
+
+
+
+    ExportField(GetFn p_get_fn_impl, const godot::PropertyInfo &p_property_info)
+        : get_fn_impl(p_get_fn_impl)
+        , property_info(p_property_info)
+        , get_fn_name(godot::String{"get_"} + p_property_info.name)
+    {}
+
+
+
+    ExportField(GetFn p_get_fn_impl, godot::Variant::Type p_type, const godot::StringName &p_name)
+        : get_fn_impl(p_get_fn_impl)
+        , property_info(godot::PropertyInfo(p_type, p_name))
+        , get_fn_name(godot::String{"get_"} + p_name)
+    {}
+
+
+
+// Builder methods ---------------------------------------------------------------------------------
+
+    ExportField& with_set(SetFn p_set_fn_impl) {
+        set_fn_impl = p_set_fn_impl;
         return *this;
     }
 
 
 
-    ExportField& with_get(GetFn p_get_fn) {
-        get_fn_impl = p_get_fn;
+    ExportField& with_get(GetFn p_get_fn_impl) {
+        get_fn_impl = p_get_fn_impl;
         return *this;
     }
 
@@ -382,6 +512,13 @@ struct ExportField final {
     }
 
 };
+
+
+
+// Deduction guide for constructor overloads that start with a setter function pointer.
+template<typename StructType, typename ExposedType, typename ...Ts>
+ExportField(void (StructType::*)(ExposedType), Ts...)
+    -> ExportField<StructType, std::remove_cvref_t<ExposedType>, ExportValuePolicyFor<ExposedType>>;
 
 
 
@@ -426,9 +563,10 @@ struct ExportDescriptor final {
 
 
     template <std::size_t I>
+    requires (!std::is_const_v<typename std::tuple_element_t<I, FieldTypeTuple>::FieldType>)
     void set(
         StructType &p_instance,
-        std::tuple_element<I, FieldTypeTuple>::type::ExposedType p_value
+        typename std::tuple_element<I, FieldTypeTuple>::type::ExposedType p_value
     ) const {
         auto &field = std::get<I>(fields);
 
@@ -454,8 +592,34 @@ struct ExportDescriptor final {
 
 
     template <std::size_t I>
-    std::tuple_element<I, FieldTypeTuple>::type::ExposedType get(const StructType &p_instance) const
-    {
+    requires std::is_const_v<typename std::tuple_element_t<I, FieldTypeTuple>::FieldType>
+    void set(
+        StructType &p_instance,
+        typename std::tuple_element<I, FieldTypeTuple>::type::ExposedType p_value
+    ) const {
+        auto &field = std::get<I>(fields);
+
+        if (field.set_fn_impl) {
+            (p_instance.*(field.set_fn_impl))(p_value);
+            return;
+        }
+
+        ERR_PRINT(godot::vformat(
+            "ExportDescriptor.set(): Invalid ExportField configuration%s. "
+            "Property '%s' cannot be written because it has neither a setter nor a writable member "
+            "pointer. Value provided: %s",
+            name.is_empty() ? "" : godot::vformat(" (%s)", name),
+            field.property_info.name,
+            p_value
+        ));
+    }
+
+
+
+    template <std::size_t I>
+    typename std::tuple_element<I, FieldTypeTuple>::type::ExposedType get(
+        const StructType &p_instance
+    ) const {
         auto &field = std::get<I>(fields);
 
         if (field.get_fn_impl) {
@@ -486,7 +650,7 @@ struct ExportDescriptor final {
 
     void set_variant(StructType &p_instance, const godot::Variant &p_variant) const {
         if constexpr (std::tuple_size_v<FieldTypeTuple> == 1) {
-            using FieldType = std::tuple_element_t<0, FieldTypeTuple>::FieldType;
+            using FieldType = typename std::tuple_element_t<0, FieldTypeTuple>::FieldType;
             FieldType value = p_variant;
             set<0>(p_instance, value);
         }
@@ -528,7 +692,7 @@ private:
         auto &field = std::get<I>(fields);
 
         if (p_dictionary.has(field.property_info.name)) {
-            using FieldType = std::tuple_element_t<I, FieldTypeTuple>::FieldType;
+            using FieldType = typename std::tuple_element_t<I, FieldTypeTuple>::FieldType;
             FieldType value = p_dictionary[field.property_info.name];
             set<I>(p_instance, value);
         }
@@ -640,21 +804,23 @@ T get_export_field() const {                                                    
 protected:                                                                                         \
 template <std::size_t I>                                                                           \
 static void bind_export_field() {                                                                  \
-    using ExposedType =                                                                            \
-        std::tuple_element_t<I, typename ExportDescriptorType::FieldTypeTuple>::ExposedType;       \
+    using ExposedType = typename std::tuple_element_t<                                             \
+        I,                                                                                         \
+        typename ExportDescriptorType::FieldTypeTuple                                              \
+    >::ExposedType;                                                                                \
                                                                                                    \
     auto &descriptor = CLASS_TYPE::export_descriptor();                                            \
     auto &field = std::get<I>(descriptor.fields);                                                  \
                                                                                                    \
     if (field.export_flags.all_of(ExportFlags::WithSet)) {                                         \
         godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD(field.set_fn, "p_value"),                                              \
+            godot::D_METHOD(field.set_fn_name, "p_value"),                                         \
             &CLASS_TYPE::set_export_field<I, ExposedType>                                          \
         );                                                                                         \
     }                                                                                              \
                                                                                                    \
     godot::ClassDB::bind_method(                                                                   \
-        godot::D_METHOD(field.get_fn),                                                             \
+        godot::D_METHOD(field.get_fn_name),                                                        \
         &CLASS_TYPE::get_export_field<I, ExposedType>                                              \
     );                                                                                             \
                                                                                                    \
@@ -682,10 +848,10 @@ static void bind_export_field() {                                               
                                                                                                    \
     if (add_property) {                                                                            \
         if (field.export_flags.all_of(ExportFlags::WithSet)) {                                     \
-            ADD_PROPERTY(field.property_info, field.set_fn, field.get_fn);                         \
+            ADD_PROPERTY(field.property_info, field.set_fn_name, field.get_fn_name);               \
         }                                                                                          \
         else {                                                                                     \
-            ADD_PROPERTY(field.property_info, "", field.get_fn);                                   \
+            ADD_PROPERTY(field.property_info, "", field.get_fn_name);                              \
         }                                                                                          \
     }                                                                                              \
 }                                                                                                  \
