@@ -222,7 +222,9 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    void set_res_component(const godot::Ref<GD_ECS_SINGLETON_TYPE::ComponentType> &p_component) {  \
+    void emplace_or_replace_res_component(                                                         \
+        const godot::Ref<GD_ECS_SINGLETON_TYPE::ComponentType> &p_component                        \
+    ) {                                                                                            \
         if (p_component.is_valid()) {                                                              \
             p_component->emplace_or_replace(*this, m_entity);                                      \
         }                                                                                          \
@@ -230,16 +232,58 @@ public:                                                                         
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    void set_res_components(const godot::Array &p_components) {                                    \
+    void emplace_or_replace_res_components(const godot::Array &p_components) {                     \
         for (auto &variant : p_components) {                                                       \
-            set_res_component(variant);                                                            \
+            emplace_or_replace_res_component(variant);                                             \
         }                                                                                          \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
                                                                                                    \
-    void set_component(const godot::StringName &p_component, const godot::Variant& p_data) const { \
+    void emplace_or_replace_component(                                                             \
+        const godot::StringName &p_component,                                                      \
+        const godot::Variant& p_data                                                               \
+    ) const {                                                                                      \
         GD_ECS_SINGLETON_TYPE::emplace_or_replace(m_entity, p_component, p_data);                  \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+    void emplace_or_replace_components(const godot::Dictionary &p_components) const {              \
+        godot::Array keys = p_components.keys();                                                   \
+        for (int i = 0; i < keys.size(); ++i) {                                                    \
+            auto &variant_c_name = keys[i];                                                        \
+            if (!gd_ecs_is_valid_component_name_print_error(variant_c_name)) {                     \
+                continue;                                                                          \
+            }                                                                                      \
+            godot::StringName c_name = variant_c_name;                                             \
+            auto &data = p_components[c_name];                                                     \
+            emplace_or_replace_component(c_name, data);                                            \
+        }                                                                                          \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+    void update_or_emplace_component(                                                              \
+        const godot::StringName &p_component,                                                      \
+        const godot::Variant& p_data                                                               \
+    ) const {                                                                                      \
+        GD_ECS_SINGLETON_TYPE::update_or_emplace(m_entity, p_component, p_data);                   \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+    void update_or_emplace_components(const godot::Dictionary &p_components) const {               \
+        godot::Array keys = p_components.keys();                                                   \
+        for (int i = 0; i < keys.size(); ++i) {                                                    \
+            auto &variant_c_name = keys[i];                                                        \
+            if (!gd_ecs_is_valid_component_name_print_error(variant_c_name)) {                     \
+                continue;                                                                          \
+            }                                                                                      \
+            godot::StringName c_name = variant_c_name;                                             \
+            auto &data = p_components[c_name];                                                     \
+            update_or_emplace_component(c_name, data);                                             \
+        }                                                                                          \
     }                                                                                              \
                                                                                                    \
                                                                                                    \
@@ -321,16 +365,28 @@ public:                                                                         
 protected:                                                                                         \
     static void _bind_methods() {                                                                  \
         godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD("set_res_component", "p_component"),                                   \
-            &GD_ECS_ENTITY_NAME::set_res_component                                                 \
+            godot::D_METHOD("emplace_or_replace_res_component", "p_component"),                    \
+            &GD_ECS_ENTITY_NAME::emplace_or_replace_res_component                                  \
         );                                                                                         \
         godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD("set_res_components", "p_components"),                                 \
-            &GD_ECS_ENTITY_NAME::set_res_components                                                \
+            godot::D_METHOD("emplace_or_replace_res_components", "p_components"),                  \
+            &GD_ECS_ENTITY_NAME::emplace_or_replace_res_components                                 \
         );                                                                                         \
         godot::ClassDB::bind_method(                                                               \
-            godot::D_METHOD("set_component", "p_component", "p_data"),                             \
-            &GD_ECS_ENTITY_NAME::set_component                                                     \
+            godot::D_METHOD("emplace_or_replace_component", "p_component", "p_data"),              \
+            &GD_ECS_ENTITY_NAME::emplace_or_replace_component                                      \
+        );                                                                                         \
+        godot::ClassDB::bind_method(                                                               \
+            godot::D_METHOD("emplace_or_replace_components", "p_components"),                      \
+            &GD_ECS_ENTITY_NAME::emplace_or_replace_components                                     \
+        );                                                                                         \
+        godot::ClassDB::bind_method(                                                               \
+            godot::D_METHOD("update_or_emplace_component", "p_component", "p_data"),               \
+            &GD_ECS_ENTITY_NAME::update_or_emplace_component                                       \
+        );                                                                                         \
+        godot::ClassDB::bind_method(                                                               \
+            godot::D_METHOD("update_or_emplace_components", "p_components"),                       \
+            &GD_ECS_ENTITY_NAME::update_or_emplace_components                                      \
         );                                                                                         \
         godot::ClassDB::bind_method(                                                               \
             godot::D_METHOD("components_diff", "p_components"),                                    \
@@ -364,7 +420,7 @@ protected:                                                                      
                 godot::PROPERTY_HINT_RESOURCE_TYPE,                                                \
                 GD_ECS_SINGLETON_TYPE::ComponentType::get_class_static()                           \
             ),                                                                                     \
-            "set_res_components",                                                                  \
+            "emplace_or_replace_res_components",                                                   \
             "get_empty_typed_array"                                                                \
         );                                                                                         \
                                                                                                    \
@@ -451,13 +507,13 @@ private:                                                                        
             switch (p_data.get_type()) {                                                           \
                 case godot::Variant::Type::STRING:                                                 \
                 case godot::Variant::Type::STRING_NAME: {                                          \
-                    GD_ECS_SINGLETON_TYPE::emplace_or_replace(m_entity, p_data, godot::Variant{}); \
+                    GD_ECS_SINGLETON_TYPE::update_or_emplace(m_entity, p_data, godot::Variant{});  \
                     break;                                                                         \
                 }                                                                                  \
                 case godot::Variant::Type::PACKED_STRING_ARRAY: {                                  \
                     godot::PackedStringArray to_add = p_data;                                      \
                     for (auto &c_name : to_add) {                                                  \
-                        GD_ECS_SINGLETON_TYPE::emplace_or_replace(                                 \
+                        GD_ECS_SINGLETON_TYPE::update_or_emplace(                                  \
                             m_entity,                                                              \
                             c_name,                                                                \
                             godot::Variant{}                                                       \
@@ -469,7 +525,7 @@ private:                                                                        
                     godot::Array to_add = p_data;                                                  \
                     for (auto &variant_c_name : to_add) {                                          \
                         if (gd_ecs_is_valid_component_name_print_error(variant_c_name)) {          \
-                            GD_ECS_SINGLETON_TYPE::emplace_or_replace(                             \
+                            GD_ECS_SINGLETON_TYPE::update_or_emplace(                              \
                                 m_entity,                                                          \
                                 variant_c_name,                                                    \
                                 godot::Variant{}                                                   \
@@ -498,7 +554,7 @@ private:                                                                        
                         switch (inner_data.get_type()) {                                           \
                             case godot::Variant::Type::STRING:                                     \
                             case godot::Variant::Type::STRING_NAME: {                              \
-                                GD_ECS_SINGLETON_TYPE::emplace_or_replace(                         \
+                                GD_ECS_SINGLETON_TYPE::update_or_emplace(                          \
                                     m_entity,                                                      \
                                     inner_c_name,                                                  \
                                     inner_data                                                     \
@@ -508,7 +564,7 @@ private:                                                                        
                             case godot::Variant::Type::PACKED_STRING_ARRAY: {                      \
                                 godot::PackedStringArray to_add = inner_data;                      \
                                 for (auto &c_name : to_add) {                                      \
-                                    GD_ECS_SINGLETON_TYPE::emplace_or_replace(                     \
+                                    GD_ECS_SINGLETON_TYPE::update_or_emplace(                      \
                                         m_entity,                                                  \
                                         c_name,                                                    \
                                         inner_data                                                 \
@@ -521,7 +577,7 @@ private:                                                                        
                                 for (auto &variant_c_name : to_add) {                              \
                                     if (gd_ecs_is_valid_component_name_print_error(variant_c_name))\
                                     {                                                              \
-                                        GD_ECS_SINGLETON_TYPE::emplace_or_replace(                 \
+                                        GD_ECS_SINGLETON_TYPE::update_or_emplace(                  \
                                             m_entity,                                              \
                                             variant_c_name,                                        \
                                             inner_data                                             \
@@ -601,7 +657,7 @@ private:                                                                        
             }                                                                                      \
         }                                                                                          \
         else {                                                                                     \
-            GD_ECS_SINGLETON_TYPE::emplace_or_replace(m_entity, p_key, p_data);                    \
+            GD_ECS_SINGLETON_TYPE::update_or_emplace(m_entity, p_key, p_data);                     \
         }                                                                                          \
     }                                                                                              \
                                                                                                    \

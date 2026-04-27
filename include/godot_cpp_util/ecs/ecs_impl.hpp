@@ -315,6 +315,8 @@ public:                                                                         
                                                                                                    \
     using EmplaceOrReplaceFn =                                                                     \
         std::function<bool(const GD_ECS_REGISTRY_TYPE::entity_type&, const godot::Variant&)>;      \
+    using UpdateOrEmplaceFn =                                                                      \
+        std::function<bool(const GD_ECS_REGISTRY_TYPE::entity_type&, const godot::Variant&)>;      \
     using RemoveFn = std::function<bool(const GD_ECS_REGISTRY_TYPE::entity_type&)>;                \
     using HasFn = std::function<bool(const GD_ECS_REGISTRY_TYPE::entity_type&)>;                   \
     using GetFn = std::function<godot::Variant(const GD_ECS_REGISTRY_TYPE::entity_type&)>;         \
@@ -324,6 +326,7 @@ public:                                                                         
     struct Entry final {                                                                           \
         ComponentIndex component_index{std::numeric_limits<ComponentIndex>::max()};                \
         EmplaceOrReplaceFn emplace_or_replace = nullptr;                                           \
+        UpdateOrEmplaceFn update_or_emplace = nullptr;                                             \
         RemoveFn remove = nullptr;                                                                 \
         RemoveFn has = nullptr;                                                                    \
         GetFn get = nullptr;                                                                       \
@@ -336,6 +339,10 @@ public:                                                                         
                                                                                                    \
             if (!emplace_or_replace) {                                                             \
                 init_emplace_or_replace<T>();                                                      \
+            }                                                                                      \
+                                                                                                   \
+            if (!update_or_emplace) {                                                              \
+                init_update_or_emplace<T>();                                                       \
             }                                                                                      \
                                                                                                    \
             if (!remove) {                                                                         \
@@ -358,7 +365,7 @@ public:                                                                         
         void init_emplace_or_replace() {                                                           \
             emplace_or_replace = [](                                                               \
                 const GD_ECS_REGISTRY_TYPE::entity_type &p_entity,                                 \
-                const godot::Variant &p_data                                                       \
+                const godot::Variant&                                                              \
             ) -> bool                                                                              \
             {                                                                                      \
                 auto &reg = GD_ECS_SINGLETON_NAME::registry();                                     \
@@ -397,6 +404,65 @@ public:                                                                         
                  && (!godot::gd_ecs_has_export_descriptor<T>)                                      \
         void init_emplace_or_replace() {                                                           \
             emplace_or_replace = [](                                                               \
+                const GD_ECS_REGISTRY_TYPE::entity_type&,                                          \
+                const godot::Variant&                                                              \
+            ) -> bool                                                                              \
+            {                                                                                      \
+                return false;                                                                      \
+            };                                                                                     \
+        }                                                                                          \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+        template<typename T>                                                                       \
+        requires std::is_empty_v<T>                                                                \
+        void init_update_or_emplace() {                                                            \
+            update_or_emplace = [](                                                                \
+                const GD_ECS_REGISTRY_TYPE::entity_type &p_entity,                                 \
+                const godot::Variant&                                                              \
+            ) -> bool                                                                              \
+            {                                                                                      \
+                auto &reg = GD_ECS_SINGLETON_NAME::registry();                                     \
+                reg.emplace_or_replace<T>(p_entity);                                               \
+                                                                                                   \
+                return true;                                                                       \
+            };                                                                                     \
+        }                                                                                          \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+        template<typename T>                                                                       \
+        requires (!std::is_empty_v<T>)                                                             \
+                 && godot::gd_ecs_has_export_descriptor<T>                                         \
+        void init_update_or_emplace() {                                                            \
+            update_or_emplace = [](                                                                \
+                const GD_ECS_REGISTRY_TYPE::entity_type &p_entity,                                 \
+                const godot::Variant &p_data                                                       \
+            ) -> bool                                                                              \
+            {                                                                                      \
+                auto &reg = GD_ECS_SINGLETON_NAME::registry();                                     \
+                                                                                                   \
+                auto &descriptor = T::export_descriptor();                                         \
+                if (auto *instance_ptr = reg.try_get<T>(p_entity)) {                               \
+                    descriptor.set_variant(*instance_ptr, p_data);                                 \
+                }                                                                                  \
+                else {                                                                             \
+                    T instance{};                                                                  \
+                    descriptor.set_variant(instance, p_data);                                      \
+                    reg.emplace_or_replace<T>(p_entity, instance);                                 \
+                }                                                                                  \
+                                                                                                   \
+                return true;                                                                       \
+            };                                                                                     \
+        }                                                                                          \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+        template<typename T>                                                                       \
+        requires (!std::is_empty_v<T>)                                                             \
+                 && (!godot::gd_ecs_has_export_descriptor<T>)                                      \
+        void init_update_or_emplace() {                                                            \
+            update_or_emplace = [](                                                                \
                 const GD_ECS_REGISTRY_TYPE::entity_type&,                                          \
                 const godot::Variant&                                                              \
             ) -> bool                                                                              \
@@ -534,6 +600,23 @@ public:                                                                         
             auto &entry = component_name_to_entry()[p_component];                                  \
             if (entry.emplace_or_replace) {                                                        \
                 return entry.emplace_or_replace(p_entity, p_data);                                 \
+            }                                                                                      \
+        }                                                                                          \
+                                                                                                   \
+        return false;                                                                              \
+    }                                                                                              \
+                                                                                                   \
+                                                                                                   \
+                                                                                                   \
+    static bool update_or_emplace(                                                                 \
+        const GD_ECS_REGISTRY_TYPE::entity_type &p_entity,                                         \
+        const godot::StringName &p_component,                                                      \
+        const godot::Variant &p_data                                                               \
+    ) {                                                                                            \
+        if (component_name_to_entry().has(p_component)) {                                          \
+            auto &entry = component_name_to_entry()[p_component];                                  \
+            if (entry.update_or_emplace) {                                                         \
+                return entry.update_or_emplace(p_entity, p_data);                                  \
             }                                                                                      \
         }                                                                                          \
                                                                                                    \
