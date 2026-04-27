@@ -282,11 +282,9 @@ inline void register_types() {
     e_node->emplace_or_replace_res_component(Ref{memnew(C_Data)});
     e_node->emplace_or_replace_res_components({Ref{memnew(C_Data)}, Ref{memnew(C_Empty)}});
     e_node->emplace_or_replace_component("Empty", Variant{});
-    e_node->emplace_or_replace_components("Empty", Dictionary{}); // key(component name)
-                                                                  // -> value(component data).
+    e_node->emplace_or_replace_components(Dictionary{}); // key(c_name) -> value(c_data).
     e_node->update_or_emplace_component("Empty", Variant{});
-    e_node->update_or_emplace_components("Empty", Dictionary{}); // key(component name)
-                                                                 // -> value(component data).
+    e_node->update_or_emplace_components(Dictionary{}); // key(c_name) -> value(c_data).
     e_node->remove_component("Empty");
     if (e_node->has_component("Empty")) {
         // ...
